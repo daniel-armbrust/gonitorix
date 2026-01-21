@@ -1,0 +1,20 @@
+global:
+  rrd_path: /var/lib/rrd
+  img_path: /var/lib/rrd/img
+  
+netif:
+  step: 60
+  max_historic_years: 1
+  create_graphs: true
+  interfaces:
+    - name: lo
+      description: lo - Loopback
+      enable: false
+
+    - name: eth0
+      description: eth0 - FastEthernet LAN
+      enable: true
+    
+    - name: eth1
+      description: eth1 - FastEthernet LAN
+      enable: false

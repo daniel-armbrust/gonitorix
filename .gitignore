@@ -7,6 +7,14 @@
 *.dll
 *.so
 *.dylib
+cmd/gonitorix/gonitorix
+
+# RRD data and generated images
+*.rrd
+*.png
+
+# Config files
+gonitorix.yaml
 
 # Test binary, built with `go test -c`
 *.test
