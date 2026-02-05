@@ -1,0 +1,27 @@
+global:
+  rrd_path: /var/lib/gonitorix/rrd
+  graph_path: /var/lib/gonitorix/img
+  graph_hostname_prefix: false
+
+netif:
+  step: 60
+  max_historic_years: 1
+  create_graphs: true
+  auto_discovery: false
+  interfaces:
+    - name: lo
+      description: lo - Loopback
+      enable: true
+
+    - name: eth0
+      description: eth0 - FastEthernet LAN
+      enable: true
+    
+    - name: eth1
+      description: eth1 - FastEthernet LAN
+      enable: false
+
+system:
+  step: 60
+  max_historic_years: 1
+  create_graphs: true

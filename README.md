@@ -1,0 +1,1 @@
+Gonitorix is a lightweight, open-source network monitoring tool written in Go, inspired by and based on Monitorix, designed to collect network statistics and generate RRD-based graphs.
