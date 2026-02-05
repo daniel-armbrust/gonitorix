@@ -21,11 +21,9 @@ func createProcInfo(p *graph.GraphPeriod) {
 
 	t := graph.GraphTemplate{
 		Graph:         graphFile,
-		Title:         "Active processes (" + p.Name + ")",
+		Title:         "Active Processes (" + p.Name + ")",
     	Start:         p.Start,
     	VerticalLabel: "Processes",
-    	Width:         450,
-    	Height:        150,
     	XGrid:         p.XGrid,
 
 		Defs: []string{
@@ -50,16 +48,16 @@ func createProcInfo(p *graph.GraphPeriod) {
 			"GPRINT:npwio:LAST: Current\\:%5.0lf\\n",
 
 			"LINE2:npzom#00EEEE:Zombie",
-			"GPRINT:npzom:LAST: Current\\:%5.0lf\\n",
+			"GPRINT:npzom:LAST:   Current\\:%5.0lf\\n",
 
 			"LINE2:npstp#EEEE00:Stopped",
-			"GPRINT:npstp:LAST: Current\\:%5.0lf\\n",
+			"GPRINT:npstp:LAST:  Current\\:%5.0lf\\n",
 
 			"LINE2:npswp#0000EE:Paging",
-			"GPRINT:npswp:LAST: Current\\:%5.0lf\\n",
+			"GPRINT:npswp:LAST:   Current\\:%5.0lf\\n",
 
 			"LINE2:nprun#EE0000:Running",
-			"GPRINT:nprun:LAST: Current\\:%5.0lf\\n",
+			"GPRINT:nprun:LAST:  Current\\:%5.0lf\\n",
 
 			"COMMENT: \\n",
 

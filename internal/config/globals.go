@@ -11,6 +11,8 @@ type GlobalConfig struct {
 	RRDPath             string `yaml:"rrd_path"`
 	GraphPath           string `yaml:"graph_path"`
 	GraphHostnamePrefix bool   `yaml:"graph_hostname_prefix"`
+	GraphWidth          int    `yaml:"graph_width"`
+	GraphHeight         int    `yaml:"graph_height"`
 }
 
 type globalWrapper struct {

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"gonitorix/internal/config"
+	"gonitorix/internal/net/graph"
 )
 
 func Run(ctx context.Context) {
@@ -33,9 +34,9 @@ func Run(ctx context.Context) {
 			case <-ticker.C:
 				updateNetIfStats()
 				
-				// if cfg.NetIf.CreateGraphs {
-				// 	graph.Create(cfg)
-				// }
+				if config.NetIfCfg.CreateGraphs {
+					graph.Create()
+				}
 		}
 	}
 }

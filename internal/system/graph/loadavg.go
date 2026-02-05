@@ -21,11 +21,9 @@ func createLoadavg(p *graph.GraphPeriod) {
 	
 	t := graph.GraphTemplate{
 		Graph:         graphFile,
-		Title:         "System load (" + p.Name + ")",
+		Title:         "System Load (" + p.Name + ")",
     	Start:         p.Start,
     	VerticalLabel: "Load average",
-    	Width:         450,
-    	Height:        150,
     	XGrid:         p.XGrid,
 
 		Defs: []string{

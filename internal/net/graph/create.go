@@ -18,6 +18,6 @@ func Create() {
 	for _, p := range periods {
 		createBytes(p)
 		createPackets(p)
-		createErros(p)
+		createErrors(p)
 	}
 }

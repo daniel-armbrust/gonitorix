@@ -24,8 +24,6 @@ func createEntropy(p *graph.GraphPeriod) {
 		Title:         "Entropy (" + p.Name + ")",
     	Start:         p.Start,
     	VerticalLabel: "Size",
-    	Width:         450,
-    	Height:        150,
     	XGrid:         p.XGrid,
 
 		Defs: []string{

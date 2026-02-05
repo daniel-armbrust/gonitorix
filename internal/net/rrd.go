@@ -74,7 +74,9 @@ func createRRD() {
 			}
 
 			log.Printf("Creating RRD '%s'\n", rrdFile)			
-		}
+		} else {
+			log.Printf("RRD '%s' already exists", rrdFile)
+		}		
 	}
 }
 

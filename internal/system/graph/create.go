@@ -8,7 +8,6 @@ import (
 )
 
 func Create() {
-
 	periods := []*graph.GraphPeriod{
 		&graph.Daily,
 		&graph.Weekly,

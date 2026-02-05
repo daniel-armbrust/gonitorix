@@ -5,6 +5,8 @@ package graph
 
 import (
 	"strconv"
+
+    "gonitorix/internal/config"
 )
 
 func BuildGraphArgs(t GraphTemplate) []string {
@@ -16,8 +18,9 @@ func BuildGraphArgs(t GraphTemplate) []string {
         "--start=" + t.Start,
         "--imgformat=PNG",
         "--vertical-label=" + t.VerticalLabel,
-        "--width=" + strconv.Itoa(t.Width),
-        "--height=" + strconv.Itoa(t.Height),
+        "--width=" + strconv.Itoa(config.GlobalCfg.GraphWidth),
+        "--height=" + strconv.Itoa(config.GlobalCfg.GraphHeight),
+        "--full-size-mode",
         "--zoom=1",
         "--slope-mode",
         "--font=LEGEND:7:",

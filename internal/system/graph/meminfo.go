@@ -64,11 +64,9 @@ func createMeminfo(p *graph.GraphPeriod) {
 	
 	t := graph.GraphTemplate{
 		Graph:         graphFile,
-		Title:         fmt.Sprintf("Memory allocation (%s) (%dMB)", p.Name, totalMemMB),
+		Title:         fmt.Sprintf("Memory Allocation (%s) (%dMB)", p.Name, totalMemMB),
     	Start:         p.Start,
     	VerticalLabel: "bytes",
-    	Width:         450,
-    	Height:        150,
     	XGrid:         p.XGrid,
 
 		Defs: []string{

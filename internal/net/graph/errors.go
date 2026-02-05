@@ -18,17 +18,15 @@ func createErrors(p *graph.GraphPeriod) {
 	rrdPath := config.GlobalCfg.RRDPath
 	graphPath := config.GlobalCfg.GraphPath
 
-	for iface := range cfg.NetIf.Interfaces {
+	for _, iface := range config.NetIfCfg.Interfaces {
 		rrdFile := rrdPath + "/" + iface.Name + ".rrd"
-		graphFile := graphPath + "/" + iface.Name + "_errors_" + p.name + ".png"
+		graphFile := graphPath + "/" + iface.Name + "_errors_" + p.Name + ".png"
 
-		t := graphTemplate{
+		t := graph.GraphTemplate{
 			Graph:         graphFile,
-			Title:         iface.Description + " (" + p.name + ")",
+			Title:         iface.Description + " (" + p.Name + ")",
 			Start:         p.Start,
 			VerticalLabel: "Errors/s",
-			Width:         450,
-			Height:        150,
 			XGrid:         p.XGrid,
 
 			Defs: []string{
