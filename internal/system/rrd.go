@@ -1,6 +1,21 @@
-//
-// internal/system/rrd.go
-// 
+/*
+ * Gonitorix - a system and network monitoring tool
+ * Copyright (C) 2026 Daniel Armbrust <darmbrust@gmail.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+ 
 package system
 
 import (
@@ -11,70 +26,101 @@ import (
 	"fmt"
 	
 	"gonitorix/internal/config"
+	"gonitorix/internal/utils"
 )
 
 func createRRD() {
 	rrdPath := config.GlobalCfg.RRDPath
 	rrdFile := rrdPath + "/system.rrd"
 
+	step := config.NetIfCfg.Step
+	heartbeat := utils.Heartbeat(step)
+
 	_, err := os.Stat(rrdFile)
 
 	if os.IsNotExist(err) {
 		args := []string{
-				"create", rrdFile,
-				"--step", strconv.Itoa(config.SystemCfg.Step),
+			"create", rrdFile,
+			"--step", strconv.Itoa(step),
 
-				// DS
-				"DS:system_load1:GAUGE:120:0:U",
-  				"DS:system_load5:GAUGE:120:0:U",
-  				"DS:system_load15:GAUGE:120:0:U",
-  				"DS:system_nproc:GAUGE:120:0:U",
-  				"DS:system_npslp:GAUGE:120:0:U",
-  				"DS:system_nprun:GAUGE:120:0:U",
-  				"DS:system_npwio:GAUGE:120:0:U",
-				"DS:system_npzom:GAUGE:120:0:U",
-				"DS:system_npstp:GAUGE:120:0:U",
-				"DS:system_npswp:GAUGE:120:0:U",
-				"DS:system_mtotl:GAUGE:120:0:U",
-				"DS:system_mbuff:GAUGE:120:0:U",
-				"DS:system_mcach:GAUGE:120:0:U",
-				"DS:system_mfree:GAUGE:120:0:U",
-				"DS:system_macti:GAUGE:120:0:U",
-				"DS:system_minac:GAUGE:120:0:U",
-				// "DS:system_val01:GAUGE:120:0:U",
-				// "DS:system_val02:GAUGE:120:0:U",
-				// "DS:system_val03:GAUGE:120:0:U",
-				"DS:system_entrop:GAUGE:120:0:U",
-				"DS:system_uptime:GAUGE:120:0:U",
+			// --------------------------------------------------
+			// Data Sources
+			// --------------------------------------------------
+			fmt.Sprintf("DS:system_load1:GAUGE:%d:0:U", heartbeat),
+			fmt.Sprintf("DS:system_load5:GAUGE:%d:0:U", heartbeat),
+			fmt.Sprintf("DS:system_load15:GAUGE:%d:0:U", heartbeat),
 
-				// DAILY
-				"RRA:AVERAGE:0.5:1:1440",
-				"RRA:MIN:0.5:1:1440",
-				"RRA:MAX:0.5:1:1440",
-				"RRA:LAST:0.5:1:1440",
+			fmt.Sprintf("DS:system_nproc:GAUGE:%d:0:U", heartbeat),
+			fmt.Sprintf("DS:system_npslp:GAUGE:%d:0:U", heartbeat),
+			fmt.Sprintf("DS:system_nprun:GAUGE:%d:0:U", heartbeat),
+			fmt.Sprintf("DS:system_npwio:GAUGE:%d:0:U", heartbeat),
+			fmt.Sprintf("DS:system_npzom:GAUGE:%d:0:U", heartbeat),
+			fmt.Sprintf("DS:system_npstp:GAUGE:%d:0:U", heartbeat),
+			fmt.Sprintf("DS:system_npswp:GAUGE:%d:0:U", heartbeat),
 
-				// WEEKLY
-				"RRA:AVERAGE:0.5:30:336",
-				"RRA:MIN:0.5:30:336",
-				"RRA:MAX:0.5:30:336",
-				"RRA:LAST:0.5:30:336",
+			fmt.Sprintf("DS:system_mtotl:GAUGE:%d:0:U", heartbeat),
+			fmt.Sprintf("DS:system_mbuff:GAUGE:%d:0:U", heartbeat),
+			fmt.Sprintf("DS:system_mcach:GAUGE:%d:0:U", heartbeat),
+			fmt.Sprintf("DS:system_mfree:GAUGE:%d:0:U", heartbeat),
+			fmt.Sprintf("DS:system_macti:GAUGE:%d:0:U", heartbeat),
+			fmt.Sprintf("DS:system_minac:GAUGE:%d:0:U", heartbeat),
 
-				// MONTHLY
-				"RRA:AVERAGE:0.5:60:744",
-				"RRA:MIN:0.5:60:744",
-				"RRA:MAX:0.5:60:744",
-				"RRA:LAST:0.5:60:744",
+			fmt.Sprintf("DS:system_entrop:GAUGE:%d:0:U", heartbeat),
+			fmt.Sprintf("DS:system_uptime:GAUGE:%d:0:U", heartbeat),
 		}
 
+		// --------------------------------------------------
+		// DAILY
+		// --------------------------------------------------
+		dailyRows := utils.Rows(step, 1, utils.DaySeconds)
+
+		args = append(args,
+			utils.RRA("AVERAGE", 0.5, 1, dailyRows),
+			utils.RRA("MIN", 0.5, 1, dailyRows),
+			utils.RRA("MAX", 0.5, 1, dailyRows),
+			utils.RRA("LAST", 0.5, 1, dailyRows),
+		)
+
+		// --------------------------------------------------
+		// WEEKLY
+		// --------------------------------------------------
+		weeklyPDP := 30
+		weeklyRows := utils.Rows(step, weeklyPDP, utils.WeekSeconds)
+
+		args = append(args,
+			utils.RRA("AVERAGE", 0.5, weeklyPDP, weeklyRows),
+			utils.RRA("MIN", 0.5, weeklyPDP, weeklyRows),
+			utils.RRA("MAX", 0.5, weeklyPDP, weeklyRows),
+			utils.RRA("LAST", 0.5, weeklyPDP, weeklyRows),
+		)
+
+		// --------------------------------------------------
+		// MONTHLY
+		// --------------------------------------------------
+		monthlyPDP := 60
+		monthlyRows := utils.Rows(step, monthlyPDP, utils.MonthSeconds)
+
+		args = append(args,
+			utils.RRA("AVERAGE", 0.5, monthlyPDP, monthlyRows),
+			utils.RRA("MIN", 0.5, monthlyPDP, monthlyRows),
+			utils.RRA("MAX", 0.5, monthlyPDP, monthlyRows),
+			utils.RRA("LAST", 0.5, monthlyPDP, monthlyRows),
+		)
+
+		// --------------------------------------------------
 		// YEARLY
+		// --------------------------------------------------
+		yearlyPDP := 1440
+
 		for n := 1; n <= config.SystemCfg.MaxHistoricYears; n++ {
-			rows := strconv.Itoa(365 * n)
+			duration := n * utils.YearSeconds
+			rows := utils.Rows(step, yearlyPDP, duration)
 
 			args = append(args,
-				"RRA:AVERAGE:0.5:1440:" + rows,
-				"RRA:MIN:0.5:1440:"     + rows,
-				"RRA:MAX:0.5:1440:"     + rows,
-				"RRA:LAST:0.5:1440:"    + rows,
+				utils.RRA("AVERAGE", 0.5, yearlyPDP, rows),
+				utils.RRA("MIN", 0.5, yearlyPDP, rows),
+				utils.RRA("MAX", 0.5, yearlyPDP, rows),
+				utils.RRA("LAST", 0.5, yearlyPDP, rows),
 			)
 		}
 

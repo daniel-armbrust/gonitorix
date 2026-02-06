@@ -15,15 +15,47 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
-package net
 
-var (
-	// lastTimestamp stores the timestamp of the previous polling cycle and is
-	// used to compute the elapsed time (deltaT) between two reads.
-	lastTimestamp float64
+package kernel
 
-	// lastIfStats stores the previous statistics snapshot for each network
-	// interface, used to compute deltas between successive polling cycles.
-	lastIfstats = make(map[string]ifStats)
-)
+type procStat struct {
+	user   float64
+	nice   float64
+	sys    float64
+	idle   float64
+	iowait float64
+	irq    float64
+	sirq   float64
+	steal  float64
+	guest  float64
+
+	contextSwitches int64
+	forks           int64
+	vforks          int64
+}
+
+type dentryState struct {
+	dentry float64
+	file   float64
+	inode  float64
+}
+
+type procDentryStateStat struct {
+	user   float64
+	nice   float64
+	sys    float64
+	idle   float64
+	iowait float64
+	irq    float64
+	sirq   float64
+	steal  float64
+	guest  float64
+
+	contextSwitches int64
+	forks           int64
+	vforks          int64
+
+	dentry float64
+	file   float64
+	inode  float64
+}

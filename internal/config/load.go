@@ -1,6 +1,21 @@
-//
-// internal/config/load.go
-//
+/*
+ * Gonitorix - a system and network monitoring tool
+ * Copyright (C) 2026 Daniel Armbrust <darmbrust@gmail.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+ 
 package config
 
 import (
@@ -21,6 +36,7 @@ func Load(cfgFile string) {
 		Global GlobalConfig `yaml:"global"`
 		System SystemConfig `yaml:"system"`
 		NetIf  NetIfConfig  `yaml:"netif"`
+		Kernel KernelConfig `yaml:"kernel"`
 	}
 
 	if err := yaml.Unmarshal(data, &wrapper); err != nil {
@@ -31,7 +47,8 @@ func Load(cfgFile string) {
 	// loaded from the configuration file.
 	GlobalCfg = wrapper.Global
 	SystemCfg = wrapper.System
-	NetIfCfg = wrapper.NetIf
+	NetIfCfg  = wrapper.NetIf
+	KernelCfg = wrapper.Kernel
 
 	// Network interface filtering logic.
 	// If "auto_discovery" is disabled, keep only interfaces explicitly enabled 
@@ -49,7 +66,6 @@ func Load(cfgFile string) {
 				enabled = append(enabled, iface)
 			}
 		}
-
 		NetIfCfg.Interfaces = enabled
 	}
 }

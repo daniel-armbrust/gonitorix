@@ -1,9 +1,12 @@
 global:
-  rrd_path: /var/lib/gonitorix/rrd
-  graph_path: /var/lib/gonitorix/img
+  rrd_path: /var/lib/rrd
+  graph_path: /var/lib/rrd/graph
   graph_hostname_prefix: false
+  graph_width: 800
+  graph_height: 300
 
 netif:
+  enable: true
   step: 60
   max_historic_years: 1
   create_graphs: true
@@ -22,6 +25,13 @@ netif:
       enable: false
 
 system:
-  step: 60
+  enable: true
+  step: 120
   max_historic_years: 1
   create_graphs: true
+
+kernel:
+  enable: true
+  step: 120
+  max_historic_years: 1
+  create_graphs: false

@@ -1,0 +1,165 @@
+/*
+ * Gonitorix - a system and network monitoring tool
+ * Copyright (C) 2026 Daniel Armbrust <darmbrust@gmail.com>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package kernel
+
+ import (
+	"os"
+	"os/exec"
+	"strconv"
+	"log"
+	"fmt"
+	"strings"
+	
+	"gonitorix/internal/config"
+	"gonitorix/internal/utils"
+)
+
+func createRRD() {
+	rrdPath := config.GlobalCfg.RRDPath
+	rrdFile := rrdPath + "/kernel.rrd"
+
+	step := config.KernelCfg.Step
+	heartbeat := utils.Heartbeat(step)
+
+	_, err := os.Stat(rrdFile)
+
+	if os.IsNotExist(err) {		
+		args := []string{
+			"create", rrdFile,
+			"--step", strconv.Itoa(step),
+
+			// --------------------------------------------------
+			// Data Sources
+			// --------------------------------------------------
+			fmt.Sprintf("DS:kern_user:GAUGE:%d:0:100", heartbeat),
+			fmt.Sprintf("DS:kern_nice:GAUGE:%d:0:100", heartbeat),
+			fmt.Sprintf("DS:kern_sys:GAUGE:%d:0:100", heartbeat),
+			fmt.Sprintf("DS:kern_idle:GAUGE:%d:0:100", heartbeat),
+			fmt.Sprintf("DS:kern_iow:GAUGE:%d:0:100", heartbeat),
+			fmt.Sprintf("DS:kern_irq:GAUGE:%d:0:100", heartbeat),
+			fmt.Sprintf("DS:kern_sirq:GAUGE:%d:0:100", heartbeat),
+			fmt.Sprintf("DS:kern_steal:GAUGE:%d:0:100", heartbeat),
+			fmt.Sprintf("DS:kern_guest:GAUGE:%d:0:100", heartbeat),
+			
+			fmt.Sprintf("DS:kern_cs:COUNTER:%d:0:U", heartbeat),
+			fmt.Sprintf("DS:kern_forks:COUNTER:%d:0:U", heartbeat),
+			fmt.Sprintf("DS:kern_vforks:COUNTER:%d:0:U", heartbeat),
+
+			fmt.Sprintf("DS:kern_dentry:GAUGE:%d:0:100", heartbeat),
+			fmt.Sprintf("DS:kern_file:GAUGE:%d:0:100", heartbeat),
+			fmt.Sprintf("DS:kern_inode:GAUGE:%d:0:100", heartbeat),			
+
+			// fmt.Sprintf("DS:kern_val03:GAUGE:%d:0:100", heartbeat),
+			// fmt.Sprintf("DS:kern_val04:GAUGE:%d:0:100", heartbeat),
+			// fmt.Sprintf("DS:kern_val05:GAUGE:%d:0:100", heartbeat),
+		}
+
+		// --------------------------------------------------
+		// DAILY
+		// --------------------------------------------------
+		dailyRows := utils.Rows(step, 1, utils.DaySeconds)
+
+		args = append(args,
+			utils.RRA("AVERAGE", 0.5, 1, dailyRows),
+		)
+
+		// --------------------------------------------------
+		// WEEKLY
+		// --------------------------------------------------
+		weeklyPDP := 30
+		weeklyRows := utils.Rows(step, weeklyPDP, utils.WeekSeconds)
+
+		args = append(args,
+			utils.RRA("AVERAGE", 0.5, weeklyPDP, weeklyRows),
+		)
+
+		// --------------------------------------------------
+		// MONTHLY
+		// --------------------------------------------------
+		monthlyPDP := 60
+		monthlyRows := utils.Rows(step, monthlyPDP, utils.MonthSeconds)
+
+		args = append(args,
+			utils.RRA("AVERAGE", 0.5, monthlyPDP, monthlyRows),
+		)
+
+		// --------------------------------------------------
+		// YEARLY
+		// --------------------------------------------------
+		yearlyPDP := 1440
+
+		rows := utils.Rows(step, yearlyPDP, utils.YearSeconds)
+
+		args = append(args,
+			utils.RRA("AVERAGE", 0.5, yearlyPDP, rows),
+		)
+
+		cmd := exec.Command("rrdtool", args...)			
+		_, err := cmd.CombinedOutput()
+
+		if err != nil {
+			log.Printf("Error creating RRD '%s': %v\n", rrdFile, err)
+			return
+		}
+
+		log.Printf("Creating RRD '%s'", rrdFile)	
+	} else {
+		log.Printf("RRD '%s' already exists", rrdFile)
+	}	
+}
+
+func updateRRD(stats *procDentryStateStat) {
+	rrdPath := config.GlobalCfg.RRDPath
+	rrdFile := rrdPath + "/kernel.rrd"
+
+	rrdata := fmt.Sprintf(
+		"N:%s:%s:%s:%s:%s:%s:%s:%s:%s:%d:%d:%d:%.2f:%.2f:%.2f",
+		utils.RRDfloat(stats.user, 6),
+		utils.RRDfloat(stats.nice, 6),
+		utils.RRDfloat(stats.sys, 6),
+		utils.RRDfloat(stats.idle, 6),
+		utils.RRDfloat(stats.iowait, 6),
+		utils.RRDfloat(stats.irq, 6),
+		utils.RRDfloat(stats.sirq, 6),
+		utils.RRDfloat(stats.steal, 6),
+		utils.RRDfloat(stats.guest, 6),
+		stats.contextSwitches,
+		stats.forks,
+		stats.vforks,
+		stats.dentry,
+		stats.file,
+		stats.inode,
+	)
+
+	cmd := exec.Command(
+		"rrdtool", "update", rrdFile, rrdata,
+	)
+
+	log.Printf("executing: %s", strings.Join(cmd.Args, " "))
+
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Printf(
+			"rrdtool update failed for %s: %v | output: %s",
+			rrdFile,
+			err,
+			string(out),
+		)
+	}
+}
