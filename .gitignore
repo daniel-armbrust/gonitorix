@@ -9,9 +9,8 @@
 *.dylib
 cmd/gonitorix/gonitorix
 
-# RRD data and generated images
+# RRD data
 *.rrd
-*.png
 
 # Config files
 gonitorix.yaml
@@ -36,5 +35,5 @@ go.work.sum
 .env
 
 # Editor/IDE
-# .idea/
-# .vscode/
+.idea/
+.vscode/
