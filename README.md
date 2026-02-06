@@ -1,4 +1,5 @@
-[Gonitorix Logo](./docs/img/gonitorix-logo.png)
+![Gonitorix Logo](docs/img/gonitorix-logo.png)
+
 
 Gonitorix
 =========
