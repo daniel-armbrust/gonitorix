@@ -105,9 +105,13 @@ func createMeminfo(p *graph.GraphPeriod) {
 
 		Draw: []string{
 			"AREA:m_mused#EE4444:Used",
+			"COMMENT: \\n",
 			"AREA:m_mcach#44EE44:Cached",
+			"COMMENT: \\n",
 			"AREA:m_mbuff#CCCCCC:Buffers",
+			"COMMENT: \\n",
 			"AREA:m_macti#E29136:Active",
+			"COMMENT: \\n",
 			"AREA:m_minac#448844:Inactive",
 
 			"LINE2:m_minac#008800",
@@ -129,6 +133,7 @@ func createMeminfo(p *graph.GraphPeriod) {
 
 	args := graph.BuildGraphArgs(t)
 
+	// Additional custom arguments used to generate this graph.
 	args = append(args,
 		fmt.Sprintf("--upper-limit=%d", totalMemBytes),
 				    "--lower-limit=0",

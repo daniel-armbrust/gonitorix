@@ -50,7 +50,7 @@ func BuildGraphArgs(t GraphTemplate) []string {
 
     args = append(args,
         "--color=CANVAS#000000",
-        "--color=BACK#CECECE",
+        "--color=BACK#101010",
         "--color=FONT#C0C0C0",
         "--color=MGRID#80C080",
         "--color=GRID#808020",

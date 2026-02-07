@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
+
 package graph
 
 import (
@@ -28,33 +28,38 @@ import (
 	"gonitorix/internal/graph"
 )
 
-func createEntropy(p *graph.GraphPeriod) {
-	// Generates RRD graphs for Entropy.
-
-	rrdFile := config.GlobalCfg.RRDPath + "/system.rrd"
-	graphFile := config.GlobalCfg.GraphPath + "/entropy_" + p.Name + ".png"
+func createContextSwitches(p *graph.GraphPeriod) {
+	rrdFile := config.GlobalCfg.RRDPath + "/kernel.rrd"
+	graphFile := config.GlobalCfg.GraphPath + "/kernctx_" + p.Name + ".png"
 
 	t := graph.GraphTemplate{
 		Graph:         graphFile,
-		Title:         "Entropy (" + p.Name + ")",
+		Title:         "Context Switches and Forks (" + p.Name + ")",
     	Start:         p.Start,
-    	VerticalLabel: "Size",
+    	VerticalLabel: "CS & forks/s",
     	XGrid:         p.XGrid,
 
 		Defs: []string{
-			fmt.Sprintf("DEF:entropy=%s:system_entrop:AVERAGE", rrdFile),
+			fmt.Sprintf("DEF:cs=%s:kern_cs:AVERAGE", rrdFile),
+			fmt.Sprintf("DEF:forks=%s:kern_forks:AVERAGE", rrdFile),
+			fmt.Sprintf("DEF:vforks=%s:kern_vforks:AVERAGE", rrdFile),			
 		},
 
 		CDefs: []string{
-			"CDEF:allvalues=entropy",
+			"CDEF:allvalues=cs,forks,vforks,+,+",
 		},
 
 		Draw: []string{
-			"LINE2:entropy#EEEE00:Entropy",
-			"GPRINT:entropy:LAST:  Current\\:%5.0lf\\n",
+			"AREA:cs#44AAEE:Context switches",
+			"GPRINT:cs:LAST: Current\\: %6.0lf\\n",
+
+			"AREA:forks#4444EE:Forks",
+			"GPRINT:forks:LAST:            Current\\: %6.0lf\\n",
+
+			"LINE1:cs#00EEEE",
+			"LINE1:forks#0000EE",
 		},
 	}
-
 	_, errStat := os.Stat(graphFile)
 
 	// Remove the PNG file if it exists.
@@ -64,10 +69,16 @@ func createEntropy(p *graph.GraphPeriod) {
 
 	args := graph.BuildGraphArgs(t)
 
+	// Additional custom arguments used to generate this graph.
+	args = append(args,
+		"--upper-limit=1000",
+		"--lower-limit=0",
+	)
+
 	cmd := exec.Command("rrdtool", args...)
 	err := cmd.Run()		
 
 	if err != nil {
 		log.Printf("Error creating image %s: %v\n", graphFile, err)
-	}
+	}	
 }

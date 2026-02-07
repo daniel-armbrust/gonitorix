@@ -24,7 +24,6 @@ package kernel
 	"strconv"
 	"log"
 	"fmt"
-	"strings"
 	
 	"gonitorix/internal/config"
 	"gonitorix/internal/utils"
@@ -129,7 +128,9 @@ func updateRRD(stats *procDentryStateStat) {
 	rrdFile := rrdPath + "/kernel.rrd"
 
 	rrdata := fmt.Sprintf(
-		"N:%s:%s:%s:%s:%s:%s:%s:%s:%s:%d:%d:%d:%.2f:%.2f:%.2f",
+		"N:%s:%s:%s:%s:%s:%s:%s:%s:%s:%d:%d:%d:%s:%s:%s",
+
+		// CPU %
 		utils.RRDfloat(stats.user, 6),
 		utils.RRDfloat(stats.nice, 6),
 		utils.RRDfloat(stats.sys, 6),
@@ -139,21 +140,24 @@ func updateRRD(stats *procDentryStateStat) {
 		utils.RRDfloat(stats.sirq, 6),
 		utils.RRDfloat(stats.steal, 6),
 		utils.RRDfloat(stats.guest, 6),
+
+		// Counters
 		stats.contextSwitches,
 		stats.forks,
 		stats.vforks,
-		stats.dentry,
-		stats.file,
-		stats.inode,
-	)
 
+		// VFS %
+		utils.RRDfloat(stats.dentry, 2),
+		utils.RRDfloat(stats.file, 2),
+		utils.RRDfloat(stats.inode, 2),
+	)
+	
 	cmd := exec.Command(
 		"rrdtool", "update", rrdFile, rrdata,
 	)
 
-	log.Printf("executing: %s", strings.Join(cmd.Args, " "))
-
 	out, err := cmd.CombinedOutput()
+
 	if err != nil {
 		log.Printf(
 			"rrdtool update failed for %s: %v | output: %s",

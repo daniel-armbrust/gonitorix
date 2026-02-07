@@ -21,6 +21,7 @@ package utils
 import (
 	"fmt"
 	"math"
+	"strconv"
 )
 
 const (
@@ -60,7 +61,5 @@ func RRDfloat(v float64, prec int) string {
 		return "U"
 	}
 
-	format := fmt.Sprintf("%%.%df", prec)
-
-	return fmt.Sprintf(format, v)
+	return strconv.FormatFloat(v, 'f', prec, 64)
 }

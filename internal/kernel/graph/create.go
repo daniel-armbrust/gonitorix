@@ -16,32 +16,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package kernel
+package graph
 
- import (
-	"context"
-	"time"
-
-	"gonitorix/internal/config"
-	"gonitorix/internal/kernel/graph"
+import (
+	"gonitorix/internal/graph"
 )
 
-func Run(ctx context.Context) {
-	createRRD()
-	
-	ticker := time.NewTicker(time.Duration(config.KernelCfg.Step) * time.Second)
-	defer ticker.Stop()
+func Create() {
+	periods := []*graph.GraphPeriod{
+		&graph.Daily,
+		&graph.Weekly,
+		&graph.Monthly,
+		&graph.Yearly,
+	}
 
-	for {
-		select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				updateKernelStats()
-
-				if config.KernelCfg.CreateGraphs {
-					graph.Create()
-				}
-		}
+	for _, p := range periods {
+		createKernelUsage(p)
+		createContextSwitches(p)
+		createVfs(p)
 	}
 }
