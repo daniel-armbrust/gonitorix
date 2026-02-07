@@ -30,8 +30,8 @@ package kernel
 )
 
 func createRRD() {
-	rrdPath := config.GlobalCfg.RRDPath
-	rrdFile := rrdPath + "/kernel.rrd"
+	rrdFile := config.GlobalCfg.RRDPath + "/" + 
+	           config.GlobalCfg.RRDHostnamePrefix + "kernel.rrd"
 
 	step := config.KernelCfg.Step
 	heartbeat := utils.Heartbeat(step)
@@ -124,9 +124,9 @@ func createRRD() {
 }
 
 func updateRRD(stats *procDentryStateStat) {
-	rrdPath := config.GlobalCfg.RRDPath
-	rrdFile := rrdPath + "/kernel.rrd"
-
+	rrdFile := config.GlobalCfg.RRDPath + "/" + 
+	           config.GlobalCfg.RRDHostnamePrefix + "kernel.rrd"
+	
 	rrdata := fmt.Sprintf(
 		"N:%s:%s:%s:%s:%s:%s:%s:%s:%s:%d:%d:%d:%s:%s:%s",
 

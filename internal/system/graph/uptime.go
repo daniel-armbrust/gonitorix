@@ -64,8 +64,12 @@ func uptimeUnitConfig(timeUnit string) uptimeUnit {
 func createUptime(p *graph.GraphPeriod) {
 	// Generates RRD graphs for machine Uptime.
 
-	rrdFile := config.GlobalCfg.RRDPath + "/system.rrd"
-	graphFile := config.GlobalCfg.GraphPath + "/uptime_" + p.Name + ".png"
+	rrdFile := config.GlobalCfg.RRDPath + "/" + 
+	           config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
+			   
+	graphFile := config.GlobalCfg.GraphPath + "/" + 
+	             config.GlobalCfg.RRDHostnamePrefix + 
+				 "uptime-" + p.Name + ".png"
 
 	u := uptimeUnitConfig("")
 

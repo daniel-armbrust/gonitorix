@@ -29,8 +29,12 @@ import (
 )
 
 func createKernelUsage(p *graph.GraphPeriod) {
-	rrdFile := config.GlobalCfg.RRDPath + "/kernel.rrd"
-	graphFile := config.GlobalCfg.GraphPath + "/kernusage_" + p.Name + ".png"
+	rrdFile := config.GlobalCfg.RRDPath + "/" + 
+	           config.GlobalCfg.RRDHostnamePrefix + "kernel.rrd"
+			   
+	graphFile := config.GlobalCfg.GraphPath + "/" + 
+	             config.GlobalCfg.RRDHostnamePrefix + 
+				 "kernusage-" + p.Name + ".png"
 
 	t := graph.GraphTemplate{
 		Graph:         graphFile,

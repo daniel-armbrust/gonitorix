@@ -38,7 +38,8 @@ func updateNetIfStats() {
 	timestamp := float64(time.Now().UnixNano()) / 1e9
 	
 	for iface, stats := range netIfStats {		
-		rrdFile := config.GlobalCfg.RRDPath + "/" + iface + ".rrd"
+		rrdFile := config.GlobalCfg.RRDPath + "/" + 
+	               config.GlobalCfg.RRDHostnamePrefix + iface + ".rrd"
 
 		// lastTimestamp is a global package-level variable.
 		if lastTimestamp == 0 {			

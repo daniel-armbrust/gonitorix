@@ -31,13 +31,13 @@ import (
 func createBytes(p *graph.GraphPeriod) {
 	// Generates RRD graphs for byte transmission rates of the configured 
 	// network interfaces.
-
-	rrdPath := config.GlobalCfg.RRDPath
-	graphPath := config.GlobalCfg.GraphPath
-
 	for _, iface := range config.NetIfCfg.Interfaces {
-		rrdFile := rrdPath + "/" + iface.Name + ".rrd"
-		graphFile := graphPath + "/" + iface.Name + "_bytes_" + p.Name + ".png"
+		rrdFile := config.GlobalCfg.RRDPath + "/" + 
+	               config.GlobalCfg.RRDHostnamePrefix + iface.Name + ".rrd"
+		
+		graphFile := config.GlobalCfg.RRDPath + "/" +
+		             config.GlobalCfg.RRDHostnamePrefix + iface.Name +
+					 "_bytes-" + p.Name + ".png"
 
 		t := graph.GraphTemplate{
 			Graph:         graphFile,

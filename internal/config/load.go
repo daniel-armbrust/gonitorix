@@ -23,6 +23,8 @@ import (
 	"log"
 
 	"gopkg.in/yaml.v3"
+
+	"gonitorix/internal/utils"
 )
 
 func Load(cfgFile string) {
@@ -50,6 +52,11 @@ func Load(cfgFile string) {
 	NetIfCfg  = wrapper.NetIf
 	KernelCfg = wrapper.Kernel
 
+	// Resolve and store the system hostname when hostname prefixing is enabled.
+	if GlobalCfg.HostnamePrefix {
+		GlobalCfg.RRDHostnamePrefix = utils.GetHostname() + "_"
+	}
+	
 	// Network interface filtering logic.
 	// If "auto_discovery" is disabled, keep only interfaces explicitly enabled 
 	// in the configuration file.

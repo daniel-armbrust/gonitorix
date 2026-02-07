@@ -23,11 +23,12 @@ package config
 // --------------------
 
 type GlobalConfig struct {
-	RRDPath        string `yaml:"rrd_path"`
-	GraphPath      string `yaml:"graph_path"`
-	HostnamePrefix bool   `yaml:"hostname_prefix"`
-	GraphWidth     int    `yaml:"graph_width"`
-	GraphHeight    int    `yaml:"graph_height"`
+	RRDPath           string `yaml:"rrd_path"`
+	GraphPath         string `yaml:"graph_path"`
+	GraphWidth        int    `yaml:"graph_width"`
+	GraphHeight       int    `yaml:"graph_height"`
+	HostnamePrefix    bool   `yaml:"hostname_prefix"`
+	RRDHostnamePrefix string
 }
 
 type globalWrapper struct {

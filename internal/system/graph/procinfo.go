@@ -31,8 +31,12 @@ import (
 func createProcInfo(p *graph.GraphPeriod) {
 	// Generates RRD graphs for Active Processes.
 
-	rrdFile := config.GlobalCfg.RRDPath + "/system.rrd"
-	graphFile := config.GlobalCfg.GraphPath + "/proc_" + p.Name + ".png"
+	rrdFile := config.GlobalCfg.RRDPath + "/" + 
+	           config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
+			   
+	graphFile := config.GlobalCfg.GraphPath + "/" + 
+	             config.GlobalCfg.RRDHostnamePrefix + 
+				 "proc-" + p.Name + ".png"
 
 	t := graph.GraphTemplate{
 		Graph:         graphFile,

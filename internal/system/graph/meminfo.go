@@ -70,8 +70,12 @@ func readMemTotal() (uint64, error) {
 func createMeminfo(p *graph.GraphPeriod) {
 	// Generates RRD graphs for Memory.
 
-	rrdFile := config.GlobalCfg.RRDPath + "/system.rrd"
-	graphFile := config.GlobalCfg.GraphPath + "/mem_" + p.Name + ".png"
+	rrdFile := config.GlobalCfg.RRDPath + "/" + 
+	           config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
+			   
+	graphFile := config.GlobalCfg.GraphPath + "/" + 
+	             config.GlobalCfg.RRDHostnamePrefix + 
+				 "mem-" + p.Name + ".png"
 
 	totalMem, _   := readMemTotal()
 	totalMemBytes := uint64(totalMem * 1024)

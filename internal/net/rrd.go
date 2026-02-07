@@ -30,13 +30,12 @@ import (
 )
 
 func createRRD() {
-	rrdPath := config.GlobalCfg.RRDPath
-
 	step := config.NetIfCfg.Step
 	heartbeat := utils.Heartbeat(step)
 
 	for _, iface := range config.NetIfCfg.Interfaces {
-		rrdFile := rrdPath + "/" + iface.Name + ".rrd"
+		rrdFile := config.GlobalCfg.RRDPath + "/" + 
+	               config.GlobalCfg.RRDHostnamePrefix + iface.Name + ".rrd"
 
 		_, err := os.Stat(rrdFile)
 

@@ -30,8 +30,8 @@ import (
 )
 
 func createRRD() {
-	rrdPath := config.GlobalCfg.RRDPath
-	rrdFile := rrdPath + "/system.rrd"
+	rrdFile := config.GlobalCfg.RRDPath + "/" + 
+	           config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
 
 	step := config.NetIfCfg.Step
 	heartbeat := utils.Heartbeat(step)
@@ -139,8 +139,8 @@ func createRRD() {
 }
 
 func updateRRD() {
-	rrdPath := config.GlobalCfg.RRDPath
-	rrdFile := rrdPath + "/system.rrd"
+	rrdFile := config.GlobalCfg.RRDPath + "/" + 
+	           config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
 
 	memory, err := readMemory()
 

@@ -31,8 +31,12 @@ import (
 func createEntropy(p *graph.GraphPeriod) {
 	// Generates RRD graphs for Entropy.
 
-	rrdFile := config.GlobalCfg.RRDPath + "/system.rrd"
-	graphFile := config.GlobalCfg.GraphPath + "/entropy_" + p.Name + ".png"
+	rrdFile := config.GlobalCfg.RRDPath + "/" + 
+	           config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
+			   
+	graphFile := config.GlobalCfg.GraphPath + "/" + 
+	             config.GlobalCfg.RRDHostnamePrefix + 
+				 "entropy-" + p.Name + ".png"
 
 	t := graph.GraphTemplate{
 		Graph:         graphFile,

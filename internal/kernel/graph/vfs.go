@@ -29,8 +29,12 @@ import (
 )
 
 func createVfs(p *graph.GraphPeriod) {
-	rrdFile := config.GlobalCfg.RRDPath + "/kernel.rrd"
-	graphFile := config.GlobalCfg.GraphPath + "/kernvfs_" + p.Name + ".png"
+	rrdFile := config.GlobalCfg.RRDPath + "/" + 
+	           config.GlobalCfg.RRDHostnamePrefix + "kernel.rrd"
+			   
+	graphFile := config.GlobalCfg.GraphPath + "/" + 
+	             config.GlobalCfg.RRDHostnamePrefix + 
+				 "kernvfs-" + p.Name + ".png"
 
 	t := graph.GraphTemplate{
 		Graph:         graphFile,

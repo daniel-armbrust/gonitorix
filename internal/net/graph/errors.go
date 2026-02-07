@@ -30,12 +30,13 @@ import (
 
 func createErrors(p *graph.GraphPeriod) {
 	// Creates error rate graphs for the configured network interfaces.
-	rrdPath := config.GlobalCfg.RRDPath
-	graphPath := config.GlobalCfg.GraphPath
-
 	for _, iface := range config.NetIfCfg.Interfaces {
-		rrdFile := rrdPath + "/" + iface.Name + ".rrd"
-		graphFile := graphPath + "/" + iface.Name + "_errors_" + p.Name + ".png"
+		rrdFile := config.GlobalCfg.RRDPath  + "/" + 
+	               config.GlobalCfg.RRDHostnamePrefix + iface.Name + ".rrd"
+		
+		graphFile := config.GlobalCfg.RRDPath  + "/" +
+		             config.GlobalCfg.RRDHostnamePrefix + iface.Name +
+					 "_errors-" + p.Name + ".png"
 
 		t := graph.GraphTemplate{
 			Graph:         graphFile,

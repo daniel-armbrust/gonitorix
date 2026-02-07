@@ -31,8 +31,12 @@ import (
 func createLoadavg(p *graph.GraphPeriod) {
 	// Generates RRD graphs for Load Average.
 
-	rrdFile := config.GlobalCfg.RRDPath + "/system.rrd"
-	graphFile := config.GlobalCfg.GraphPath + "/loadavg_" + p.Name + ".png"
+	rrdFile := config.GlobalCfg.RRDPath + "/" + 
+	           config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
+			   
+	graphFile := config.GlobalCfg.GraphPath + "/" + 
+	             config.GlobalCfg.RRDHostnamePrefix + 
+				 "loadavg-" + p.Name + ".png"
 	
 	t := graph.GraphTemplate{
 		Graph:         graphFile,
