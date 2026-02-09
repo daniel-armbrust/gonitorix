@@ -36,20 +36,20 @@ func startGonitorix() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// // System Monitoring
-	// if config.SystemCfg.Enable {
-	// 	go system.Run(ctx)
-	// }	
+	// System Monitoring
+	if config.SystemCfg.Enable {
+		go system.Run(ctx)
+	}	
 
-	// // Network Monitoring
-	// if config.NetIfCfg.Enable {
-	// 	go net.Run(ctx)
-	// }
+	// Network Monitoring
+	if config.NetIfCfg.Enable {
+		go net.Run(ctx)
+	}
 
-	// // Kernel Monitoring
-	// if config.KernelCfg.Enable {
-	// 	go kernel.Run(ctx)
-	// }
+	// Kernel Monitoring
+	if config.KernelCfg.Enable {
+		go kernel.Run(ctx)
+	}
 
 	// Latency Monitoring
 	if config.LatencyCfg.Enable {
