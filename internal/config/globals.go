@@ -95,3 +95,33 @@ type kernelWrapper struct {
 }
 
 var KernelCfg KernelConfig
+
+// --------------------
+// NETWORK / LATENCY
+// --------------------
+
+type LatencyConfig struct {
+	Enable            bool          `yaml:"enable"`
+	Step              int           `yaml:"step"`
+	MaxHistoricYears  int           `yaml:"max_historic_years"`
+	CreateGraphs      bool          `yaml:"create_graphs"`
+	DefaultGateway    bool          `yaml:"default_gateway"`
+	MaxParallelProbes int           `yaml:"max_parallel_probes"`
+	ProbeTimeoutSecs  int		    `yaml:"probe_timeout_seconds"`
+	ProbePackets	  int		    `yaml:"probe_packets"`
+	Hosts             []LatencyHost `yaml:"hosts"`
+}
+
+type LatencyHost struct {
+	Name        string `yaml:"name"`
+	Description string `yaml:"description"`
+	Address     string `yaml:"address"`
+	Iface       string `yaml:"iface"`
+	RRDFile     string
+}
+
+type latencyWrapper struct {
+	Latency LatencyConfig `yaml:"latency"`
+}
+
+var LatencyCfg LatencyConfig

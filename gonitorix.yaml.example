@@ -1,10 +1,25 @@
 global:
   rrd_path: /var/lib/rrd
-  graph_path: /var/lib/rrd/graph  
+  graph_path: /var/lib/rrd/graph
   graph_width: 800
   graph_height: 300
-  hostname_prefix: false
+  hostname_prefix: true
 
+# System load average and usage.
+system:
+  enable: true
+  step: 60
+  max_historic_years: 1
+  create_graphs: true
+
+# Global kernel usage.
+kernel:
+  enable: true
+  step: 120
+  max_historic_years: 1
+  create_graphs: true
+
+# Network traffic and usage.
 netif:
   enable: true
   step: 60
@@ -21,17 +36,29 @@ netif:
       enable: true
     
     - name: eth1
-      description: eth1 - FastEthernet LAN
+      description: eth1 - GigabitEthernet LAN
       enable: false
 
-system:
+# Network Latency
+latency:
   enable: true
-  step: 120
-  max_historic_years: 1
-  create_graphs: true
-
-kernel:
-  enable: true
-  step: 120
+  step: 30
   max_historic_years: 1
   create_graphs: false
+  default_gateway: true
+  max_parallel_probes: 2
+  probe_timeout_seconds: 3
+  probe_packets: 5
+  hosts: 
+    - name: google-dns-ipv4
+      address: 8.8.8.8
+      description: Google DNS (IPv4)
+
+    - name: google-dns-ipv6
+      description: Google DNS (IPv6)
+      address: 2001:4860:4860::8888
+
+    - name: registro-br
+      description: REGISTRO.BR
+      address: registro.br
+      iface: eth1

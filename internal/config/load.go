@@ -35,10 +35,11 @@ func Load(cfgFile string) {
 	}
 
 	var wrapper struct {
-		Global GlobalConfig `yaml:"global"`
-		System SystemConfig `yaml:"system"`
-		NetIf  NetIfConfig  `yaml:"netif"`
-		Kernel KernelConfig `yaml:"kernel"`
+		Global  GlobalConfig  `yaml:"global"`
+		System  SystemConfig  `yaml:"system"`
+		NetIf   NetIfConfig   `yaml:"netif"`
+		Kernel  KernelConfig  `yaml:"kernel"`
+		Latency LatencyConfig `yaml:"latency"`
 	}
 
 	if err := yaml.Unmarshal(data, &wrapper); err != nil {
@@ -47,10 +48,11 @@ func Load(cfgFile string) {
 
 	// Populate the application-wide configuration structures with the values
 	// loaded from the configuration file.
-	GlobalCfg = wrapper.Global
-	SystemCfg = wrapper.System
-	NetIfCfg  = wrapper.NetIf
-	KernelCfg = wrapper.Kernel
+	GlobalCfg  = wrapper.Global
+	SystemCfg  = wrapper.System
+	NetIfCfg   = wrapper.NetIf
+	KernelCfg  = wrapper.Kernel
+	LatencyCfg = wrapper.Latency
 
 	// Resolve and store the system hostname when hostname prefixing is enabled.
 	if GlobalCfg.HostnamePrefix {
