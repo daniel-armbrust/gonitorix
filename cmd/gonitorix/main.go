@@ -25,9 +25,9 @@ import (
 	"context"
 		
 	"gonitorix/internal/config"
-	// "gonitorix/internal/system"
-	// "gonitorix/internal/net"
-	// "gonitorix/internal/kernel"
+	"gonitorix/internal/system"
+	"gonitorix/internal/net"
+	"gonitorix/internal/kernel"
 	"gonitorix/internal/latency"
 )
 
