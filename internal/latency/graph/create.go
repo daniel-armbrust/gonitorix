@@ -16,36 +16,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package latency
+package graph
 
 import (
-	"context"
-	"time"
-	
-	"gonitorix/internal/config"
-	"gonitorix/internal/latency/graph"
+	"gonitorix/internal/graph"
 )
 
-func Run(ctx context.Context) {
-	// Discover IP addresses and network interfaces for latency monitoring.
-	prepareLatencyTargets()
+func Create() {
+	periods := []*graph.GraphPeriod{
+		&graph.Daily,
+		&graph.Weekly,
+		&graph.Monthly,
+		&graph.Yearly,
+	}
 
-	// Create RRD files.
-	createRRD()
-
-	ticker := time.NewTicker(time.Duration(config.LatencyCfg.Step) * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				measure()
-				
-				if config.LatencyCfg.CreateGraphs {
-					graph.Create()
-				}
-		}
+	for _, p := range periods {
+		createPing(p)
 	}
 }

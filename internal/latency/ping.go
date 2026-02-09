@@ -92,10 +92,9 @@ func pingProbe(host config.LatencyHost, timeout time.Duration, packetCount int,)
 
 	if err != nil {
 		log.Printf(
-			"[WARN] PING error for %s: %v | output: %s",
+			"[WARN] PING error for %s: %v\n",
 			host.Address,
 			err,
-			output,
 		)
 	}
 

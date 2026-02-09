@@ -63,7 +63,7 @@ func loadDefaultGateways() {
 
 			config.LatencyCfg.Hosts = append(config.LatencyCfg.Hosts, host)
 
-			log.Printf("Latency: discovered default gateway %s via %s and added to targets\n", ip, iface,)
+			log.Printf("Latency: Discovered default gateway %s via %s and added to targets\n", ip, iface,)
 		}
 	}
 }

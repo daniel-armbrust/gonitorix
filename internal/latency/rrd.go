@@ -39,7 +39,6 @@ func createRRD() {
 		_, err := os.Stat(rrdFile)
 
 		if os.IsNotExist(err) {
-
 			// https://github.com/sandromarcell/rrd-rttping
 			args := []string{
 				"create", rrdFile,

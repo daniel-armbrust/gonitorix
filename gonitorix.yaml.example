@@ -44,7 +44,7 @@ latency:
   enable: true
   step: 30
   max_historic_years: 1
-  create_graphs: false
+  create_graphs: true
   default_gateway: true
   max_parallel_probes: 2
   probe_timeout_seconds: 3
