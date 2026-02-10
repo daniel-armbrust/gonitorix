@@ -20,30 +20,31 @@ package graph
 
 import (
 	"fmt"
-	"log"
 	"os"
-	"os/exec"
-	
+	"context"
+		
 	"gonitorix/internal/config"
 	"gonitorix/internal/graph"
+	"gonitorix/internal/logging"	
+	"gonitorix/internal/utils"
 )
 
-func createProcInfo(p *graph.GraphPeriod) {
-	// Generates RRD graphs for Active Processes.
+// createProcInfo generates RRD graphs showing process state distribution
+// for the given graph period.
+func createProcInfo(ctx context.Context, p *graph.GraphPeriod) {
+	rrdFile := config.GlobalCfg.RRDPath + "/" +
+		       config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
 
-	rrdFile := config.GlobalCfg.RRDPath + "/" + 
-	           config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
-			   
-	graphFile := config.GlobalCfg.GraphPath + "/" + 
-	             config.GlobalCfg.RRDHostnamePrefix + 
-				 "proc-" + p.Name + ".png"
+	graphFile := config.GlobalCfg.GraphPath + "/" +
+		         config.GlobalCfg.RRDHostnamePrefix +
+		         "proc-" + p.Name + ".png"
 
 	t := graph.GraphTemplate{
 		Graph:         graphFile,
 		Title:         "Active Processes (" + p.Name + ")",
-    	Start:         p.Start,
-    	VerticalLabel: "Processes",
-    	XGrid:         p.XGrid,
+		Start:         p.Start,
+		VerticalLabel: "Processes",
+		XGrid:         p.XGrid,
 
 		Defs: []string{
 			fmt.Sprintf("DEF:nproc=%s:system_nproc:AVERAGE", rrdFile),
@@ -67,16 +68,16 @@ func createProcInfo(p *graph.GraphPeriod) {
 			"GPRINT:npwio:LAST: Current\\:%5.0lf\\n",
 
 			"LINE2:npzom#00EEEE:Zombie",
-			"GPRINT:npzom:LAST:   Current\\:%5.0lf\\n",
+			"GPRINT:npzom:LAST: Current\\:%5.0lf\\n",
 
 			"LINE2:npstp#EEEE00:Stopped",
-			"GPRINT:npstp:LAST:  Current\\:%5.0lf\\n",
+			"GPRINT:npstp:LAST: Current\\:%5.0lf\\n",
 
 			"LINE2:npswp#0000EE:Paging",
-			"GPRINT:npswp:LAST:   Current\\:%5.0lf\\n",
+			"GPRINT:npswp:LAST: Current\\:%5.0lf\\n",
 
 			"LINE2:nprun#EE0000:Running",
-			"GPRINT:nprun:LAST:  Current\\:%5.0lf\\n",
+			"GPRINT:nprun:LAST: Current\\:%5.0lf\\n",
 
 			"COMMENT: \\n",
 
@@ -85,19 +86,16 @@ func createProcInfo(p *graph.GraphPeriod) {
 		},
 	}
 
-	_, errStat := os.Stat(graphFile)
-
-	// Remove the PNG file if it exists.
-	if !os.IsNotExist(errStat) {
-		os.Remove(graphFile)
+	// Remove the PNG file if it already exists.
+	if _, err := os.Stat(graphFile); err == nil {
+		if err := os.Remove(graphFile); err != nil {
+			logging.Warn("SYSTEM", "Failed to remove existing graph %s: %v", graphFile,	err,)
+		}
 	}
 
 	args := graph.BuildGraphArgs(t)
 
-	cmd := exec.Command("rrdtool", args...)
-	err := cmd.Run()		
-
-	if err != nil {
-		log.Printf("Error creating image %s: %v\n", graphFile, err)
-	} 
+	if err := utils.ExecCommand(ctx, "SYSTEM", "rrdtool", args...,); err != nil {
+		logging.Error("SYSTEM",	"Error creating image %s",	graphFile,)
+	}
 }

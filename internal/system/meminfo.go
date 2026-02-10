@@ -20,15 +20,23 @@ package system
 
 import (
 	"bufio"
+	"context"
+	"fmt"
 	"os"
 	"regexp"
 	"strconv"
+
+	"gonitorix/internal/logging"
 )
 
-func readMemory() (map[string]uint64, error) {
+// readMemory reads /proc/meminfo and returns selected memory statistics
+// such as total, free, buffers, cache and active/inactive pages.
+// The operation can be cancelled through the provided context.
+func readMemory(ctx context.Context) (map[string]uint64, error) {
 	file, err := os.Open("/proc/meminfo")
 
 	if err != nil {
+		logging.Error("SYSTEM", "Cannot read /proc/meminfo: %v", err,)
 		return nil, err
 	}
 	defer file.Close()
@@ -40,6 +48,12 @@ func readMemory() (map[string]uint64, error) {
 	scanner := bufio.NewScanner(file)
 
 	for scanner.Scan() {
+		select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			default:
+		}
+
 		line := scanner.Text()
 
 		m := re.FindStringSubmatch(line)
@@ -67,26 +81,31 @@ func readMemory() (map[string]uint64, error) {
 				 "SReclaimable",
 				 "SUnreclaim":
 
-				mem[key] = val
-
-				if key == "SUnreclaim" {
-					break
-				}
+				 mem[key] = val
 		}
 	}
 
 	if err := scanner.Err(); err != nil {
+		logging.Error("SYSTEM", "Error reading /proc/meminfo: %v", err,)
 		return nil, err
 	}
 
-	// SReclaimable and SUnreclaim values are added to 'mfree'
-	// in order to be also included in the subtraction later.
+	// Include reclaimable and unreclaimable slabs into MemFree
+	// so they are accounted for when calculating used memory.
 	if srecl, ok := mem["SReclaimable"]; ok {
 		mem["MemFree"] += srecl
 	}
 
 	if sun, ok := mem["SUnreclaim"]; ok {
 		mem["MemFree"] += sun
+	}
+
+	if len(mem) == 0 {
+		return nil, fmt.Errorf("no memory statistics collected")
+	}
+
+	if logging.DebugEnabled() {
+		logging.Debug("SYSTEM",	"Collected memory statistics: %+v", mem,)
 	}
 
 	return mem, nil

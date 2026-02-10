@@ -20,23 +20,33 @@ package graph
 
 import (
 	"os"
-	"os/exec"
+	"context"
 	"fmt"
-	"log"
 
 	"gonitorix/internal/config"
+	"gonitorix/internal/utils"
+	"gonitorix/internal/logging"
 	"gonitorix/internal/graph"
 )
 
-func createBytes(p *graph.GraphPeriod) {
-	// Generates RRD graphs for byte transmission rates of the configured 
+// createBytes generates RRD graphs showing per-interface byte transmission
+// rates for the given time period.
+func createBytes(ctx context.Context, p *graph.GraphPeriod) {
+	// Generates RRD graphs for byte transmission rates of the configured
 	// network interfaces.
 	for _, iface := range config.NetIfCfg.Interfaces {
-		rrdFile := config.GlobalCfg.RRDPath + "/" + 
-	               config.GlobalCfg.RRDHostnamePrefix + iface.Name + ".rrd"
-		
-		graphFile := config.GlobalCfg.RRDPath + "/" +
-		             config.GlobalCfg.RRDHostnamePrefix + iface.Name +
+		select {
+			case <-ctx.Done():
+				logging.Info("NET", "Byte graph generation cancelled")
+				return
+			default:
+		}
+
+		rrdFile := config.GlobalCfg.RRDPath + "/" +
+				   config.GlobalCfg.RRDHostnamePrefix + iface.Name + ".rrd"
+
+		graphFile := config.GlobalCfg.GraphPath + "/" +
+					 config.GlobalCfg.RRDHostnamePrefix + iface.Name +
 					 "_bytes-" + p.Name + ".png"
 
 		t := graph.GraphTemplate{
@@ -48,7 +58,7 @@ func createBytes(p *graph.GraphPeriod) {
 
 			Defs: []string{
 				fmt.Sprintf("DEF:in=%s:bytes_in:AVERAGE", rrdFile),
-           		fmt.Sprintf("DEF:out=%s:bytes_out:AVERAGE", rrdFile),
+				fmt.Sprintf("DEF:out=%s:bytes_out:AVERAGE", rrdFile),
 			},
 
 			CDefs: []string{
@@ -82,20 +92,17 @@ func createBytes(p *graph.GraphPeriod) {
 			},
 		}
 
-		_, errStat := os.Stat(graphFile)
-
-		// Remove the PNG file if it exists.
-		if !os.IsNotExist(errStat) {
-			os.Remove(graphFile)
+		// Remove the PNG file if it already exists.
+		if _, err := os.Stat(graphFile); err == nil {
+			if err := os.Remove(graphFile); err != nil {
+				logging.Warn("NET",	"Failed to remove existing graph %s: %v", graphFile, err,)
+			}
 		}
 
 		args := graph.BuildGraphArgs(t)
 
-		cmd := exec.Command("rrdtool", args...)
-		err := cmd.Run()		
-
-		if err != nil {
-			log.Printf("Error creating image %s: %v\n", graphFile, err)
+		if err := utils.ExecCommand(ctx, "NET",	"rrdtool", args...,); err != nil {
+			logging.Error("NET", "Error creating image %s",	graphFile,)
 		}
 	}
 }

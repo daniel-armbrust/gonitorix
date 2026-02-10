@@ -19,81 +19,49 @@
 package graph
 
 import (
-	"log"
 	"os"
-	"os/exec"
-	"strings"
-	"bufio"
 	"fmt"
+	"context"
 	
 	"gonitorix/internal/config"
 	"gonitorix/internal/graph"
-	
+	"gonitorix/internal/utils"
+	"gonitorix/internal/logging"		
 )
 
-func readMemTotal() (uint64, error) {
-	file, err := os.Open("/proc/meminfo")
+// createMeminfo generates RRD graphs showing system memory allocation
+// for the given graph period.
+func createMeminfo(ctx context.Context, p *graph.GraphPeriod) {
+	rrdFile := config.GlobalCfg.RRDPath + "/" +
+		       config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
+
+	graphFile := config.GlobalCfg.GraphPath + "/" +
+			     config.GlobalCfg.RRDHostnamePrefix +
+			     "mem-" + p.Name + ".png"
+
+	totalMemKB, err := utils.ReadMemTotal(ctx)
 
 	if err != nil {
-		return 0, err
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		if strings.HasPrefix(line, "MemTotal:") {
-			fields := strings.Fields(line)
-
-			if len(fields) >= 2 {
-				var val uint64
-
-				_, err := fmt.Sscanf(fields[1], "%d", &val)
-				if err != nil {
-					return 0, err
-				}
-
-				return val, nil
-			}
-		}
+		logging.Warn("SYSTEM", "Unable to read total memory: %v", err,)
+		return
 	}
 
-	if err := scanner.Err(); err != nil {
-		return 0, err
-	}
+	totalMemBytes := totalMemKB * 1024
+	totalMemMB := totalMemKB / 1024
 
-	return 0, fmt.Errorf("MemTotal not found")
-}
-
-func createMeminfo(p *graph.GraphPeriod) {
-	// Generates RRD graphs for Memory.
-
-	rrdFile := config.GlobalCfg.RRDPath + "/" + 
-	           config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
-			   
-	graphFile := config.GlobalCfg.GraphPath + "/" + 
-	             config.GlobalCfg.RRDHostnamePrefix + 
-				 "mem-" + p.Name + ".png"
-
-	totalMem, _   := readMemTotal()
-	totalMemBytes := uint64(totalMem * 1024)
-	totalMemMB    := uint64(totalMem / 1024)
-	
 	t := graph.GraphTemplate{
 		Graph:         graphFile,
 		Title:         fmt.Sprintf("Memory Allocation (%s) (%dMB)", p.Name, totalMemMB),
-    	Start:         p.Start,
-    	VerticalLabel: "bytes",
-    	XGrid:         p.XGrid,
+		Start:         p.Start,
+		VerticalLabel: "Bytes",
+		XGrid:         p.XGrid,
 
 		Defs: []string{
 			fmt.Sprintf("DEF:mtotl=%s:system_mtotl:AVERAGE", rrdFile),
-           	fmt.Sprintf("DEF:mbuff=%s:system_mbuff:AVERAGE", rrdFile),
+			fmt.Sprintf("DEF:mbuff=%s:system_mbuff:AVERAGE", rrdFile),
 			fmt.Sprintf("DEF:mcach=%s:system_mcach:AVERAGE", rrdFile),
 			fmt.Sprintf("DEF:mfree=%s:system_mfree:AVERAGE", rrdFile),
-           	fmt.Sprintf("DEF:macti=%s:system_macti:AVERAGE", rrdFile),
+			fmt.Sprintf("DEF:macti=%s:system_macti:AVERAGE", rrdFile),
 			fmt.Sprintf("DEF:minac=%s:system_minac:AVERAGE", rrdFile),
 		},
 
@@ -110,12 +78,16 @@ func createMeminfo(p *graph.GraphPeriod) {
 		Draw: []string{
 			"AREA:m_mused#EE4444:Used",
 			"COMMENT: \\n",
+
 			"AREA:m_mcach#44EE44:Cached",
 			"COMMENT: \\n",
+
 			"AREA:m_mbuff#CCCCCC:Buffers",
 			"COMMENT: \\n",
+
 			"AREA:m_macti#E29136:Active",
 			"COMMENT: \\n",
+
 			"AREA:m_minac#448844:Inactive",
 
 			"LINE2:m_minac#008800",
@@ -128,27 +100,25 @@ func createMeminfo(p *graph.GraphPeriod) {
 		},
 	}
 
-	_, errStat := os.Stat(graphFile)
-
-	// Remove the PNG file if it exists.
-	if !os.IsNotExist(errStat) {
-		os.Remove(graphFile)
+	// Remove the PNG file if it already exists.
+	if _, err := os.Stat(graphFile); err == nil {
+		if err := os.Remove(graphFile); err != nil {
+			logging.Warn("SYSTEM", "Failed to remove existing graph %s: %v", graphFile,	err,)
+		}
 	}
 
 	args := graph.BuildGraphArgs(t)
 
-	// Additional custom arguments used to generate this graph.
-	args = append(args,
+	// Custom limits based on total memory.
+	args = append(
+		args,
 		fmt.Sprintf("--upper-limit=%d", totalMemBytes),
-				    "--lower-limit=0",
-	                "--rigid",
-	                "--base=1024",
-    )
+		"--lower-limit=0",
+		"--rigid",
+		"--base=1024",
+	)
 
-	cmd := exec.Command("rrdtool", args...)
-	err := cmd.Run()		
-
-	if err != nil {
-		log.Printf("Error creating image %s: %v\n", graphFile, err)
-	} 
+	if err := utils.ExecCommand(ctx, "SYSTEM", "rrdtool", args...,); err != nil {
+		logging.Error("SYSTEM", "Error creating image %s", graphFile,)
+	}
 }

@@ -23,50 +23,57 @@
 	"fmt"
 	
 	"gonitorix/internal/config"
+	"gonitorix/internal/logging"
 	"gonitorix/internal/utils"
 )
-
-
 
 // prepareDefaultGateways discovers IPv4 and IPv6 default routes and adds them
 // to the latency configuration, resolving the outgoing interface and RRD
 // filename for each target.
 func loadDefaultGateways() {
-	var gateways map[string]string
+	gateways, err := utils.GetDefaultGateways()
 
-	gateways, _ = utils.GetDefaultGateways()
-		
+	if err != nil {
+		logging.Warn("LATENCY", "Failed to discover default gateways: %v", err,)
+		return
+	}
+
 	if len(gateways) == 0 {
-		log.Println("Latency: no default gateways discovered")		
-	} else {
-		// Index existing addresses to avoid duplicates.
-		existing := make(map[string]struct{})
+		logging.Info("LATENCY", "No default gateways discovered",)
+		return
+	}
 
-		for _, host := range config.LatencyCfg.Hosts {
-			existing[host.Address] = struct{}{}
+	// Index existing addresses to avoid duplicates.
+	existing := make(map[string]struct{})
+
+	for _, host := range config.LatencyCfg.Hosts {
+		existing[host.Address] = struct{}{}
+	}
+
+	for ip, iface := range gateways {
+		// Skip duplicates already defined in YAML.
+		if _, found := existing[ip]; found {
+			logging.Debug("LATENCY", "Gateway %s already configured, skipping", ip,)
+			continue
 		}
-			
-		for ip, iface := range gateways {
-			// Skip duplicates already defined in YAML.
-			if _, found := existing[ip]; found {
-				log.Printf("Latency: gateway %s already configured, skipping\n", ip)
-				continue
-			}
 
-			host := config.LatencyHost{
-				Name:        "gateway-" + iface,
-				Description: "Default gateway via " + iface,
-				Address:     ip,
-				Iface:       iface,
-				RRDFile:     config.GlobalCfg.RRDHostnamePrefix + "latency_gw-" + iface + ".rrd",
-			}
-
-			config.LatencyCfg.Hosts = append(config.LatencyCfg.Hosts, host)
-
-			log.Printf("Latency: Discovered default gateway %s via %s and added to targets\n", ip, iface,)
+		host := config.LatencyHost{
+			Name:        "gateway-" + iface,
+			Description: "Default gateway via " + iface,
+			Address:     ip,
+			Iface:       iface,
+			RRDFile:     config.GlobalCfg.RRDHostnamePrefix + "latency_gw-" + iface + ".rrd",
 		}
+
+		config.LatencyCfg.Hosts = append(
+			config.LatencyCfg.Hosts,
+			host,
+		)
+
+		logging.Info("LATENCY", "Discovered default gateway %s via %s and added to targets", ip, iface,)
 	}
 }
+
 
 // prepareTargets resolves routing and runtime details for latency monitoring.
 //

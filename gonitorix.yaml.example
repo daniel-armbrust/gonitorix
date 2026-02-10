@@ -3,7 +3,7 @@ global:
   graph_path: /var/lib/rrd/graph
   graph_width: 800
   graph_height: 300
-  hostname_prefix: true
+  hostname_prefix: false
 
 # System load average and usage.
 system:

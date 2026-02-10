@@ -20,17 +20,24 @@ package graph
 
 import (
 	"fmt"
-	"log"
 	"os"
-	"os/exec"
+	"context"
 		
 	"gonitorix/internal/config"
+	"gonitorix/internal/logging"
 	"gonitorix/internal/utils"
 	"gonitorix/internal/graph"
 )
 
-func createPing(p *graph.GraphPeriod) {
+func createPing(ctx context.Context, p *graph.GraphPeriod) {
 	for _, host := range config.LatencyCfg.Hosts {
+		select {
+			case <-ctx.Done():
+				logging.Info("LATENCY", "Ping graph generation cancelled")
+				return
+			default:
+		}
+
 		rrdFile := config.GlobalCfg.RRDPath + "/" + host.RRDFile
 
 		graphFile := fmt.Sprintf(
@@ -69,6 +76,7 @@ func createPing(p *graph.GraphPeriod) {
 				"LINE2:rtt_avg#00BFFF:Average",
 				`GPRINT:vavg:%1.3lfms\l`,
 
+				// Blank line before loss
 				"COMMENT: \\l",
 
 				"COMMENT:Lost packets",
@@ -76,25 +84,17 @@ func createPing(p *graph.GraphPeriod) {
 			},
 		}
 
-		_, errStat := os.Stat(graphFile)
-
-		// Remove the PNG file if it exists.
-		if !os.IsNotExist(errStat) {
-			os.Remove(graphFile)
+		// Remove the PNG file if it already exists.
+		if _, err := os.Stat(graphFile); err == nil {
+			if err := os.Remove(graphFile); err != nil {
+				logging.Warn("LATENCY",	"Failed to remove existing graph %s: %v", graphFile, err,)
+			}
 		}
 
 		args := graph.BuildGraphArgs(t)
 
-		cmd := exec.Command("rrdtool", args...)
-		out, err := cmd.CombinedOutput()
-
-		if err != nil {
-			log.Printf(
-				"Error creating image %s: %v\nrrdtool output:\n%s",
-				graphFile,
-				err,
-				string(out),
-			)
+		if err := utils.ExecCommand(ctx, "LATENCY", "rrdtool", args...,	); err != nil {
+			logging.Error("LATENCY", "Error creating image %s", graphFile,)
 		}
 	}
 }

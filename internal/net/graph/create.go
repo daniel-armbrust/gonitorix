@@ -19,10 +19,13 @@
 package graph
 
 import (
+	"context"
+
+	"gonitorix/internal/logging"
 	"gonitorix/internal/graph"
 )
 
-func Create() {
+func Create(ctx context.Context) {
 	periods := []*graph.GraphPeriod{
 		&graph.Daily,
 		&graph.Weekly,
@@ -31,8 +34,15 @@ func Create() {
 	}
 
 	for _, p := range periods {
-		createBytes(p)
-		createPackets(p)
-		createErrors(p)
+		select {
+			case <-ctx.Done():
+				logging.Info("KERNEL", "Graph generation stopped")
+				return
+			default:
+		}
+
+		createBytes(ctx, p)
+		createPackets(ctx, p)
+		createErrors(ctx, p)
 	}
 }

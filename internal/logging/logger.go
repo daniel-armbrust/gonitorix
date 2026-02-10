@@ -42,6 +42,10 @@ func SetDebug(enabled bool) {
 	}
 }
 
+func DebugEnabled() bool {
+	return Level(currentLevel.Load()) == LevelDebug
+}
+
 func logf(prefix string, level Level, tag string, format string, args ...any) {
 	if level < Level(currentLevel.Load()) {
 		return

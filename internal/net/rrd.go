@@ -20,128 +20,129 @@ package net
 
 import (
 	"os"
-	"os/exec"
 	"strconv"
-	"log"
 	"fmt"
+	"context"
 	
 	"gonitorix/internal/config"
+	"gonitorix/internal/logging"
 	"gonitorix/internal/utils"
 )
 
-func createRRD() {
+func createRRD(ctx context.Context) {
 	step := config.NetIfCfg.Step
 	heartbeat := utils.Heartbeat(step)
 
 	for _, iface := range config.NetIfCfg.Interfaces {
-		rrdFile := config.GlobalCfg.RRDPath + "/" + 
-	               config.GlobalCfg.RRDHostnamePrefix + iface.Name + ".rrd"
-
-		_, err := os.Stat(rrdFile)
-
-		if os.IsNotExist(err) {			
-			args := []string{
-				"create", rrdFile,
-				"--step", strconv.Itoa(step),
-
-				// --------------------------------------------------
-				// Data Sources
-				// --------------------------------------------------
-				fmt.Sprintf("DS:bytes_in:GAUGE:%d:0:U", heartbeat),
-				fmt.Sprintf("DS:bytes_out:GAUGE:%d:0:U", heartbeat),
-				fmt.Sprintf("DS:packs_in:GAUGE:%d:0:U", heartbeat),
-				fmt.Sprintf("DS:packs_out:GAUGE:%d:0:U", heartbeat),
-				fmt.Sprintf("DS:errors_in:GAUGE:%d:0:U", heartbeat),
-				fmt.Sprintf("DS:errors_out:GAUGE:%d:0:U", heartbeat),
-			}
-
-			// --------------------------------------------------
-			// DAILY
-			// --------------------------------------------------
-			dailyRows := utils.Rows(step, 1, utils.DaySeconds)
-
-			args = append(args,
-				utils.RRA("AVERAGE", 0.5, 1, dailyRows),
-				utils.RRA("MIN", 0.5, 1, dailyRows),
-				utils.RRA("MAX", 0.5, 1, dailyRows),
-				utils.RRA("LAST", 0.5, 1, dailyRows),
-			)
-
-			// --------------------------------------------------
-			// WEEKLY
-			// --------------------------------------------------
-			weeklyPDP := 30
-			weeklyRows := utils.Rows(step, weeklyPDP, utils.WeekSeconds)
-
-			args = append(args,
-				utils.RRA("AVERAGE", 0.5, weeklyPDP, weeklyRows),
-				utils.RRA("MIN", 0.5, weeklyPDP, weeklyRows),
-				utils.RRA("MAX", 0.5, weeklyPDP, weeklyRows),
-				utils.RRA("LAST", 0.5, weeklyPDP, weeklyRows),
-			)
-
-			// --------------------------------------------------
-			// MONTHLY
-			// --------------------------------------------------
-			monthlyPDP := 60
-			monthlyRows := utils.Rows(step, monthlyPDP, utils.MonthSeconds)
-
-			args = append(args,
-				utils.RRA("AVERAGE", 0.5, monthlyPDP, monthlyRows),
-				utils.RRA("MIN", 0.5, monthlyPDP, monthlyRows),
-				utils.RRA("MAX", 0.5, monthlyPDP, monthlyRows),
-				utils.RRA("LAST", 0.5, monthlyPDP, monthlyRows),
-			)
-
-			// --------------------------------------------------
-			// YEARLY
-			// --------------------------------------------------
-			yearlyPDP := 1440
-
-			for n := 1; n <= config.NetIfCfg.MaxHistoricYears; n++ {
-				duration := n * utils.YearSeconds
-				rows := utils.Rows(step, yearlyPDP, duration)
-
-				args = append(args,
-					utils.RRA("AVERAGE", 0.5, yearlyPDP, rows),
-					utils.RRA("MIN", 0.5, yearlyPDP, rows),
-					utils.RRA("MAX", 0.5, yearlyPDP, rows),
-					utils.RRA("LAST", 0.5, yearlyPDP, rows),
-				)
-			}			
-
-			cmd := exec.Command("rrdtool", args...)			
-			_, err := cmd.CombinedOutput()
-
-			if err != nil {
-				log.Printf("Error creating RRD '%s': %v\n", rrdFile, err)
+		select {
+			case <-ctx.Done():
+				logging.Info("NET", "RRD creation cancelled")
 				return
-			}
+			default:
+		}
 
-			log.Printf("Creating RRD '%s'\n", rrdFile)			
-		} else {
-			log.Printf("RRD '%s' already exists", rrdFile)
-		}		
+		rrdFile := config.GlobalCfg.RRDPath + "/" +
+				   config.GlobalCfg.RRDHostnamePrefix + iface.Name + ".rrd"
+
+		if _, err := os.Stat(rrdFile); err == nil {
+			logging.Info("NET",	"RRD '%s' already exists", rrdFile,)
+			continue
+		}
+
+		args := []string{
+			"create", rrdFile,
+			"--step", strconv.Itoa(step),
+
+			// ----------------------------
+			// Data Sources
+			// ----------------------------
+			fmt.Sprintf("DS:bytes_in:GAUGE:%d:0:U", heartbeat),
+			fmt.Sprintf("DS:bytes_out:GAUGE:%d:0:U", heartbeat),
+			fmt.Sprintf("DS:packs_in:GAUGE:%d:0:U", heartbeat),
+			fmt.Sprintf("DS:packs_out:GAUGE:%d:0:U", heartbeat),
+			fmt.Sprintf("DS:errors_in:GAUGE:%d:0:U", heartbeat),
+			fmt.Sprintf("DS:errors_out:GAUGE:%d:0:U", heartbeat),
+		}
+
+		// ----------------------------
+		// DAILY
+		// ----------------------------
+		dailyRows := utils.Rows(step, 1, utils.DaySeconds)
+
+		args = append(args,
+			utils.RRA("AVERAGE", 0.5, 1, dailyRows),
+			utils.RRA("MIN", 0.5, 1, dailyRows),
+			utils.RRA("MAX", 0.5, 1, dailyRows),
+			utils.RRA("LAST", 0.5, 1, dailyRows),
+		)
+
+		// ----------------------------
+		// WEEKLY
+		// ----------------------------
+		weeklyPDP := 30
+		weeklyRows := utils.Rows(step, weeklyPDP, utils.WeekSeconds)
+
+		args = append(args,
+			utils.RRA("AVERAGE", 0.5, weeklyPDP, weeklyRows),
+			utils.RRA("MIN", 0.5, weeklyPDP, weeklyRows),
+			utils.RRA("MAX", 0.5, weeklyPDP, weeklyRows),
+			utils.RRA("LAST", 0.5, weeklyPDP, weeklyRows),
+		)
+
+		// ----------------------------
+		// MONTHLY
+		// ----------------------------
+		monthlyPDP := 60
+		monthlyRows := utils.Rows(step, monthlyPDP, utils.MonthSeconds)
+
+		args = append(args,
+			utils.RRA("AVERAGE", 0.5, monthlyPDP, monthlyRows),
+			utils.RRA("MIN", 0.5, monthlyPDP, monthlyRows),
+			utils.RRA("MAX", 0.5, monthlyPDP, monthlyRows),
+			utils.RRA("LAST", 0.5, monthlyPDP, monthlyRows),
+		)
+
+		// ----------------------------
+		// YEARLY
+		// ----------------------------
+		yearlyPDP := 1440
+
+		for n := 1; n <= config.NetIfCfg.MaxHistoricYears; n++ {
+			duration := n * utils.YearSeconds
+			rows := utils.Rows(step, yearlyPDP, duration)
+
+			args = append(args,
+				utils.RRA("AVERAGE", 0.5, yearlyPDP, rows),
+				utils.RRA("MIN", 0.5, yearlyPDP, rows),
+				utils.RRA("MAX", 0.5, yearlyPDP, rows),
+				utils.RRA("LAST", 0.5, yearlyPDP, rows),
+			)
+		}
+
+		if err := utils.ExecCommand(ctx, "NET", "rrdtool", args...,); err != nil {
+			logging.Error("NET", "Error creating RRD '%s'",	rrdFile,)
+			continue
+		}
+
+		logging.Info("NET", "Created RRD '%s'",	rrdFile,)
 	}
 }
 
-func updateRRD(rrdFile string, stats *ifStats) {
-	cmd := exec.Command(
-		"rrdtool", "update", rrdFile,
-			fmt.Sprintf(
-				"N:%.6f:%.6f:%.6f:%.6f:%.6f:%.6f",
-				stats.rxBytes,
-				stats.txBytes,
-				stats.rxPkts,
-				stats.txPkts,
-				stats.rxErrors,
-				stats.txErrors,
-			),
+func updateRRD(ctx context.Context, rrdFile string, stats *ifStats,) error {
+	rrdata := fmt.Sprintf(
+		"N:%.6f:%.6f:%.6f:%.6f:%.6f:%.6f",
+		stats.rxBytes,
+		stats.txBytes,
+		stats.rxPkts,
+		stats.txPkts,
+		stats.rxErrors,
+		stats.txErrors,
 	)
 
-	err := cmd.Run()
-
-	if err != nil {
-	   log.Printf("RRDTOOL update failed: %v | output: %s\n", rrdFile, err)
+	if err := utils.ExecCommand(ctx, "NET", "rrdtool", "update", rrdFile, rrdata,); err != nil {
+		logging.Error("NET", "RRDTOOL update failed for %s", rrdFile,)
+		return err
 	}
+
+	return nil
 }

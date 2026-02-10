@@ -20,16 +20,16 @@ package kernel
 
  import (
 	"os"
-	"os/exec"
 	"strconv"
-	"log"
 	"fmt"
+	"context"
 	
 	"gonitorix/internal/config"
+	"gonitorix/internal/logging"
 	"gonitorix/internal/utils"
 )
 
-func createRRD() {
+func createRRD(ctx context.Context) {
 	rrdFile := config.GlobalCfg.RRDPath + "/" + 
 	           config.GlobalCfg.RRDHostnamePrefix + "kernel.rrd"
 
@@ -109,24 +109,21 @@ func createRRD() {
 			utils.RRA("AVERAGE", 0.5, yearlyPDP, rows),
 		)
 
-		cmd := exec.Command("rrdtool", args...)			
-		_, err := cmd.CombinedOutput()
-
-		if err != nil {
-			log.Printf("Error creating RRD '%s': %v\n", rrdFile, err)
+		if err := utils.ExecCommand(ctx, "KERNEL", "rrdtool", args...); err != nil {
+			logging.Error("KERNEL", "Error creating RRD '%s'", rrdFile)
 			return
 		}
 
-		log.Printf("Creating RRD '%s'", rrdFile)	
+		logging.Info("KERNEL", "Created RRD '%s'", rrdFile)
 	} else {
-		log.Printf("RRD '%s' already exists", rrdFile)
-	}	
+		logging.Info("KERNEL", "RRD '%s' already exists", rrdFile,)
+	}
 }
 
-func updateRRD(stats *procDentryStateStat) {
-	rrdFile := config.GlobalCfg.RRDPath + "/" + 
-	           config.GlobalCfg.RRDHostnamePrefix + "kernel.rrd"
-	
+func updateRRD(ctx context.Context, stats *procDentryStateStat) error {
+	rrdFile := config.GlobalCfg.RRDPath + "/" +
+		       config.GlobalCfg.RRDHostnamePrefix + "kernel.rrd"
+
 	rrdata := fmt.Sprintf(
 		"N:%s:%s:%s:%s:%s:%s:%s:%s:%s:%d:%d:%d:%s:%s:%s",
 
@@ -151,19 +148,12 @@ func updateRRD(stats *procDentryStateStat) {
 		utils.RRDfloat(stats.file, 2),
 		utils.RRDfloat(stats.inode, 2),
 	)
-	
-	cmd := exec.Command(
-		"rrdtool", "update", rrdFile, rrdata,
-	)
 
-	out, err := cmd.CombinedOutput()
+	if err := utils.ExecCommand(ctx, "KERNEL", "rrdtool", "update", rrdFile, rrdata,); err != nil {
+		logging.Error("KERNEL", "RRDTOOL update failed for %s", rrdFile,)
 
-	if err != nil {
-		log.Printf(
-			"rrdtool update failed for %s: %v | output: %s",
-			rrdFile,
-			err,
-			string(out),
-		)
+		return err
 	}
+
+	return nil
 }

@@ -41,7 +41,7 @@ var GonitorixVersion = "dev"
 func startGonitorix() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	
+
 	// Handle shutdown signals
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
@@ -51,8 +51,6 @@ func startGonitorix() {
 		logging.Warn("MAIN", "Received signal %s, shutting down...", sig)
 		cancel()
 	}()
-
-	// ---- Startup logs (sequential and deterministic) ----
 
 	if config.SystemCfg.Enable {
 		logging.Info("SYSTEM", "Starting system monitoring subsystem")
@@ -69,8 +67,6 @@ func startGonitorix() {
 	if config.LatencyCfg.Enable {
 		logging.Info("LATENCY", "Starting latency monitoring subsystem")
 	}
-
-	// ---- Launch goroutines AFTER logging ----
 
 	if config.SystemCfg.Enable {
 		go system.Run(ctx)

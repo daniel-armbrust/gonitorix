@@ -19,10 +19,12 @@
 package graph
 
 import (
+	"context"
+
 	"gonitorix/internal/graph"
 )
 
-func Create() {
+func Create(ctx context.Context) {
 	periods := []*graph.GraphPeriod{
 		&graph.Daily,
 		&graph.Weekly,
@@ -31,6 +33,6 @@ func Create() {
 	}
 
 	for _, p := range periods {
-		createPing(p)
+		createPing(ctx, p)
 	}
 }

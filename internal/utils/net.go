@@ -24,6 +24,8 @@ import (
 	"os/exec"
 	"fmt"
 	"strings"
+	
+	"gonitorix/internal/logging"
 )
 
 // GetHostname returns the configured hostname for this instance.
@@ -56,13 +58,26 @@ func GetDefaultGateways() (map[string]string, error) {
 	gateways := make(map[string]string)
 
 	for _, args := range defaultGwCmd {
+		if logging.DebugEnabled() {
+			logging.Debug("UTILS", "Discovering default gateways with: ip %s", strings.Join(args, " "),)
+		}
+
 		cmd := exec.Command("ip", args...)
 
 		out, err := cmd.CombinedOutput()
 
 		if err != nil {
-			log.Printf("IP %v failed: %v\n", args, err)
+			logging.Error("UTILS", "ip %v failed: %v", args, err,)
+
+			if logging.DebugEnabled() {
+				logging.Debug("UTILS", "ip output: %s", string(out),)
+			}
+
 			continue
+		}
+
+		if logging.DebugEnabled() {
+			logging.Debug("UTILS", "ip output: %s", string(out),)
 		}
 
 		lines := strings.Split(string(out), "\n")
@@ -74,7 +89,7 @@ func GetDefaultGateways() (map[string]string, error) {
 				continue
 			}
 
-		    var gw, iface string
+			var gw, iface string
 
 			for i := 0; i < len(fields); i++ {
 				switch fields[i] {
@@ -82,6 +97,7 @@ func GetDefaultGateways() (map[string]string, error) {
 						if i+1 < len(fields) {
 							gw = fields[i+1]
 						}
+
 					case "dev":
 						if i+1 < len(fields) {
 							iface = fields[i+1]
@@ -90,26 +106,29 @@ func GetDefaultGateways() (map[string]string, error) {
 			}
 
 			if gw == "" || iface == "" {
+				if logging.DebugEnabled() {
+					logging.Debug("UTILS", "Ignoring line (missing gw/dev): %s", line,)
+				}
+
 				continue
 			}
 
 			// Duplicate detection
 			if oldIface, exists := gateways[gw]; exists {
-				log.Printf(
-					"Duplicate default gateway detected: %s (interfaces %s and %s)\n",
-					gw,
-					oldIface,
-					iface,
-				)
+				logging.Warn("UTILS", "Duplicate default gateway detected: %s (interfaces %s and %s)", gw, oldIface, iface,)
 				continue
 			}
 
-			gateways[gw] = iface			
+			gateways[gw] = iface
+
+			if logging.DebugEnabled() {
+				logging.Debug("UTILS", "Discovered default gateway %s via %s", gw, iface,)
+			}
 		}
 	}
 
 	if len(gateways) == 0 {
-		return nil, fmt.Errorf("No default gateways found")
+		return nil, fmt.Errorf("no default gateways found")
 	}
 
 	return gateways, nil
@@ -122,24 +141,42 @@ func GetDefaultGateways() (map[string]string, error) {
 func GetIfaceFromIP(ip string) (string, error) {
 	args := []string{"route", "get", ip}
 
+	if logging.DebugEnabled() {
+		logging.Debug("UTILS", "Resolving interface for IP %s with: ip %s",	ip, strings.Join(args, " "),)
+	}
+
 	cmd := exec.Command("ip", args...)
 
 	out, err := cmd.CombinedOutput()
 
 	if err != nil {
-		log.Printf("[ERROR] IP route get %s failed: %v\n", ip, err)
+		logging.Error("UTILS", "ip route get %s failed: %v", ip, err,)
+
+		if logging.DebugEnabled() {
+			logging.Debug("UTILS", "ip output: %s", string(out),)
+		}
+
 		return "", err
+	}
+
+	if logging.DebugEnabled() {
+		logging.Debug("UTILS", "ip route output for %s: %s", ip, string(out),)
 	}
 
 	fields := strings.Fields(string(out))
 
 	for i := 0; i < len(fields); i++ {
 		if fields[i] == "dev" && i+1 < len(fields) {
+
+			if logging.DebugEnabled() {
+				logging.Debug("UTILS", "Resolved interface for %s: %s", ip, fields[i+1],)
+			}
+
 			return fields[i+1], nil
 		}
 	}
 
-	log.Printf("Could not determine interface for destination %s\n", ip)
+	logging.Warn("UTILS", "Could not determine interface for destination %s", ip,)
 
-	return "", nil
+	return "", fmt.Errorf("interface not found for %s", ip)
 }

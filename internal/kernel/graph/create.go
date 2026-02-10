@@ -19,10 +19,13 @@
 package graph
 
 import (
+	"context"
+
+	"gonitorix/internal/logging"
 	"gonitorix/internal/graph"
 )
 
-func Create() {
+func Create(ctx context.Context) {
 	periods := []*graph.GraphPeriod{
 		&graph.Daily,
 		&graph.Weekly,
@@ -31,8 +34,15 @@ func Create() {
 	}
 
 	for _, p := range periods {
-		createKernelUsage(p)
-		createContextSwitches(p)
-		createVfs(p)
+		select {
+			case <-ctx.Done():
+				logging.Info("KERNEL", "Graph generation stopped")
+				return
+			default:
+		}
+
+		createKernelUsage(ctx, p)
+		createContextSwitches(ctx, p)
+		createVfs(ctx, p)
 	}
 }

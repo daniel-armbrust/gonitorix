@@ -23,11 +23,12 @@ package kernel
 	"time"
 
 	"gonitorix/internal/config"
+	"gonitorix/internal/logging"
 	"gonitorix/internal/kernel/graph"
 )
 
 func Run(ctx context.Context) {
-	createRRD()
+	createRRD(ctx)
 	
 	ticker := time.NewTicker(time.Duration(config.KernelCfg.Step) * time.Second)
 	defer ticker.Stop()
@@ -36,11 +37,20 @@ func Run(ctx context.Context) {
 		select {
 			case <-ctx.Done():
 				return
-			case <-ticker.C:
-				updateKernelStats()
+			case <-ticker.C:				
+				stats, err := updateKernelStats()
+
+				if err != nil {
+					logging.Warn("KERNEL", "Failed to collect kernel stats: %v", err,)
+					continue
+				}
+
+				if err := updateRRD(ctx, stats); err != nil {
+					logging.Warn("KERNEL", "RRD update failed: %v", err,)
+				}
 
 				if config.KernelCfg.CreateGraphs {
-					graph.Create()
+					graph.Create(ctx)
 				}
 		}
 	}

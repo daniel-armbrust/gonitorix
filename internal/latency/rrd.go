@@ -19,17 +19,17 @@
 package latency
 
 import (
-	"log"
 	"os"
-	"os/exec"
 	"strconv"
 	"fmt"
+	"context"
 
 	"gonitorix/internal/config"
+	"gonitorix/internal/logging"
 	"gonitorix/internal/utils"
 )
 
-func createRRD() {
+func createRRD(ctx context.Context) {
 	for _, host := range config.LatencyCfg.Hosts {
 		rrdFile := config.GlobalCfg.RRDPath + "/" + host.RRDFile
 
@@ -108,24 +108,21 @@ func createRRD() {
 				)
 			}
 
-			cmd := exec.Command("rrdtool", args...)			
-			_, err := cmd.CombinedOutput()
-
-			if err != nil {
-				log.Printf("Error creating RRD '%s': %v\n", rrdFile, err)
+			if err := utils.ExecCommand(ctx, "LATENCY", "rrdtool", args...,); err != nil {
+				logging.Error("LATENCY", "Error creating RRD '%s'", rrdFile,)
 				return
 			}
 
-			log.Printf("Creating RRD '%s'", rrdFile)	
+			logging.Info("LATENCY", "Created RRD '%s'", rrdFile)
 		} else {
-			log.Printf("RRD '%s' already exists", rrdFile)
+			logging.Info("LATENCY", "RRD '%s' already exists", rrdFile,)
 		}	
 	}
 }
 
-func updateRRD(rrdFile string, data *pingResult) {
+func updateRRD(ctx context.Context, rrdFile string, data *pingResult,) error {
 	rrdFile = config.GlobalCfg.RRDPath + "/" + rrdFile
-	
+
 	rrdata := fmt.Sprintf(
 		"N:%s:%s:%s:%s",
 
@@ -138,21 +135,11 @@ func updateRRD(rrdFile string, data *pingResult) {
 		utils.RRDfloat(data.loss, 2),
 	)
 
-	cmd := exec.Command(
-		"rrdtool",
-		"update",
-		rrdFile,
-		rrdata,
-	)
+	if err := utils.ExecCommand(ctx, "LATENCY",	"rrdtool", "update", rrdFile, rrdata,); err != nil {
+		logging.Error("LATENCY", "RRDTOOL update failed for %s", rrdFile,)
 
-	out, err := cmd.CombinedOutput()
-
-	if err != nil {
-		log.Printf(
-			"RRDTOOL update failed for %s: %v | output: %s\n",
-			rrdFile,
-			err,
-			string(out),
-		)
+		return err
 	}
+
+	return nil
 }

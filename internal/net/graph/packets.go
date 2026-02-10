@@ -20,23 +20,32 @@ package graph
 
 import (
 	"os"
-	"os/exec"
 	"fmt"
-	"log"
+	"context"
 
 	"gonitorix/internal/config"
+	"gonitorix/internal/utils"
+	"gonitorix/internal/logging"
 	"gonitorix/internal/graph"
 )
 
-func createPackets(p *graph.GraphPeriod) {
-	// Creates packet traffic graphs for the configured network interfaces.
+// createPackets generates RRD graphs showing per-interface packet transmission 
+// rates for the given graph period.
+func createPackets(ctx context.Context, p *graph.GraphPeriod) {
 	for _, iface := range config.NetIfCfg.Interfaces {
-		rrdFile := config.GlobalCfg.RRDPath + "/" + 
-	               config.GlobalCfg.RRDHostnamePrefix + iface.Name + ".rrd"
-		
-		graphFile := config.GlobalCfg.RRDPath + "/" +
-		             config.GlobalCfg.RRDHostnamePrefix + iface.Name +
-					 "_pkts-" + p.Name + ".png"
+		select {
+			case <-ctx.Done():
+				logging.Info("NET", "Packet graph generation cancelled")
+				return
+			default:
+		}
+
+		rrdFile := config.GlobalCfg.RRDPath + "/" +
+				   config.GlobalCfg.RRDHostnamePrefix + iface.Name + ".rrd"
+
+		graphFile := config.GlobalCfg.GraphPath + "/" +
+				     config.GlobalCfg.RRDHostnamePrefix + iface.Name +
+			         "_pkts-" + p.Name + ".png"
 
 		t := graph.GraphTemplate{
 			Graph:         graphFile,
@@ -47,39 +56,36 @@ func createPackets(p *graph.GraphPeriod) {
 
 			Defs: []string{
 				fmt.Sprintf("DEF:in=%s:packs_in:AVERAGE", rrdFile),
-           		fmt.Sprintf("DEF:out=%s:packs_out:AVERAGE", rrdFile),
+				fmt.Sprintf("DEF:out=%s:packs_out:AVERAGE", rrdFile),
 			},
 
 			CDefs: []string{
 				"CDEF:allvalues=in,out,+",
-                "CDEF:p_in=in",
-                "CDEF:p_out=out",
+				"CDEF:p_in=in",
+				"CDEF:p_out=out",
 			},
 
 			Draw: []string{
 				"AREA:p_in#44EE44:Input",
-                "AREA:p_out#4444EE:Output",
-                "AREA:p_out#4444EE:",
-                "AREA:p_in#44EE44:",
-                "LINE1:p_out#0000EE", 
-                "LINE1:p_in#00EE00",
+				"AREA:p_out#4444EE:Output",
+				"AREA:p_out#4444EE:",
+				"AREA:p_in#44EE44:",
+				"LINE1:p_out#0000EE",
+				"LINE1:p_in#00EE00",
 			},
 		}
 
-		_, errStat := os.Stat(graphFile)
-
-		// Remove the PNG file if it exists.
-		if !os.IsNotExist(errStat) {
-			os.Remove(graphFile)
+		// Remove the PNG file if it already exists.
+		if _, err := os.Stat(graphFile); err == nil {
+			if err := os.Remove(graphFile); err != nil {
+				logging.Warn("NET", "Failed to remove existing graph %s: %v", graphFile, err,)
+			}
 		}
 
 		args := graph.BuildGraphArgs(t)
 
-		cmd := exec.Command("rrdtool", args...)
-		err := cmd.Run()		
-
-		if err != nil {
-			log.Printf("Error creating image %s: %v\n", graphFile, err)
+		if err := utils.ExecCommand(ctx, "NET", "rrdtool", args...,); err != nil {
+			logging.Error("NET", "Error creating image %s",	graphFile,)
 		}
 	}
 }

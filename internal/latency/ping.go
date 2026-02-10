@@ -23,10 +23,12 @@ import (
 	"fmt"
 	"strconv"
 	"time"
+	"context"
+	"strings"
 	"os/exec"
-	"log"
 
 	"gonitorix/internal/config"
+	"gonitorix/internal/logging"
 )
 
 // parsePingOutput parses the output of the system ping command and extracts
@@ -66,7 +68,7 @@ func parsePingOutput(out string) (*pingResult, error) {
 // timeout and packet count, optionally binding to a network interface.
 // It parses the command output and returns latency statistics and packet
 // loss percentages suitable for RRD updates.
-func pingProbe(host config.LatencyHost, timeout time.Duration, packetCount int,) (*pingResult, error) {
+func pingProbe(ctx context.Context, host config.LatencyHost, timeout time.Duration, packetCount int,) (*pingResult, error) {
 	args := []string{}
 
 	// Bind to interface if provided (Linux).
@@ -85,17 +87,21 @@ func pingProbe(host config.LatencyHost, timeout time.Duration, packetCount int,)
 		host.Address,
 	)
 
-    cmd := exec.Command("ping", args...)
+	if logging.DebugEnabled() {
+		logging.Debug("LATENCY", "PING command: ping %s", strings.Join(args, " "),)
+	}
+
+	cmd := exec.CommandContext(ctx, "ping", args...)
 
 	out, err := cmd.CombinedOutput()
 	output := string(out)
 
 	if err != nil {
-		log.Printf(
-			"[WARN] PING error for %s: %v\n",
-			host.Address,
-			err,
-		)
+		logging.Warn("LATENCY", "PING error for %s: %v", host.Address, err,)
+
+		if logging.DebugEnabled() {
+			logging.Debug("LATENCY", "PING output:\n%s", output,)
+		}
 	}
 
 	return parsePingOutput(output)

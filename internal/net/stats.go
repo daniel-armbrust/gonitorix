@@ -21,20 +21,25 @@ package net
 import (
 	"os"
 	"bufio"
-	"log"
 	"fmt"
 	"strings"
 	"math"
 	"strconv"
+    "context"
 
 	"gonitorix/internal/config"
+	"gonitorix/internal/logging"
 )
 
-func discoveryIfaces() {
+// discoveryIfaces scans /proc/net/dev and auto-discovers network interfaces,
+// adding them to the runtime configuration when not explicitly defined.
+// The operation can be cancelled through the provided context.
+func discoveryIfaces(ctx context.Context) error {
 	file, err := os.Open("/proc/net/dev")
 
 	if err != nil {
-		log.Fatalf("Cannot read '/proc/net/dev': %w\n", err)
+		logging.Error("NET", "Cannot read /proc/net/dev: %v", err,)
+		return err
 	}
 	defer file.Close()
 
@@ -47,9 +52,16 @@ func discoveryIfaces() {
 	found := make(map[string]bool)
 
 	for scanner.Scan() {
+		select {
+			case <-ctx.Done():
+				logging.Info("NET", "Interface discovery cancelled")
+				return ctx.Err()
+			default:
+		}
+
 		line := strings.TrimSpace(scanner.Text())
 
-	    parts := strings.SplitN(line, ":", 2)
+		parts := strings.SplitN(line, ":", 2)
 
 		if len(parts) != 2 {
 			continue
@@ -76,13 +88,24 @@ func discoveryIfaces() {
 				Enable:      true,
 			},
 		)
+
+		if logging.DebugEnabled() {
+			logging.Debug("NET", "Discovered interface %s",	iface,)
+		}
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Fatalf("Error reading '/proc/net/dev': %w\n", err)
+		logging.Error("NET", "Error reading /proc/net/dev: %v", err,)
+		return err
 	}
+
+	logging.Info("NET", "Discovered %d network interfaces", len(found),)
+
+	return nil
 }
 
+// parseFloat64 converts a numeric string into float64.
+// It returns 0 when the value cannot be parsed.
 func parseFloat64(s string) float64 {
 	// Parses a string into a float64 value, logging an error on failure, 
 	// and rounds the result to 6 decimal places.
@@ -90,18 +113,22 @@ func parseFloat64(s string) float64 {
     v, err := strconv.ParseFloat(s, 64)
 
     if err != nil {
-        log.Printf("Failed to parse float value %q\n", s)
+        logging.Error("NET", "Failed to parse float value %q\n", s)
         return 0
     }
 
     return math.Round(v*1e6) / 1e6
 }
 
+// roundFloat64 rounds a float64 value to the specified number of decimal 
+// places.
 func roundFloat64(v float64) float64 {
 	// Rounds a float64 value to a fixed precision of 6 decimal places.
     return math.Round(v*1e6) / 1e6
 }
 
+// rate6 calculates a per-second rate and rounds the result to six decimal places.
+// It is typically used for high-resolution network or system metrics.
 func rate6(current, previous, deltaT float64) float64 {	
 	// Calculates the transmission rate using the difference between 
 	// current and previous counters, normalized over the given time 
@@ -124,6 +151,8 @@ func rate6(current, previous, deltaT float64) float64 {
     return roundFloat64(delta / deltaT)
 }
 
+// computeRates calculates per-second rates from counter deltas between
+// the current and previous samples.
 func computeRates(iface string, stats *ifStats, deltaT float64) ifStats {
 	// Computes per-second transmission rates by comparing current interface 
 	// counters with previously stored historical values.
@@ -157,18 +186,17 @@ func computeRates(iface string, stats *ifStats, deltaT float64) ifStats {
 	return rates
 }
 
-func readStats() (map[string]*ifStats, error) {	
-	// This function wil returns a map of structures holding 
-	// per-interface network statistics (all network interface found).
-
-	// Map that stores the data for all network interfaces 
-	// read from /proc/net/dev
+// readStats reads /proc/net/dev and returns a map containing per-interface
+// network statistics such as bytes, packets and errors counters.
+// The operation can be cancelled through the provided context.
+func readStats(ctx context.Context) (map[string]*ifStats, error) {
+	// Map that stores per-interface statistics read from /proc/net/dev.
 	procStats := make(map[string]*ifStats)
 
 	file, err := os.Open("/proc/net/dev")
 
 	if err != nil {
-		log.Println("Cannot read '/proc/net/dev'")
+		logging.Error("NET", "Cannot read /proc/net/dev: %v", err,)
 		return nil, err
 	}
 	defer file.Close()
@@ -177,6 +205,12 @@ func readStats() (map[string]*ifStats, error) {
 	lineNum := 0
 
 	for scanner.Scan() {
+		select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			default:
+		}
+
 		line := strings.TrimSpace(scanner.Text())
 		lineNum++
 
@@ -186,6 +220,7 @@ func readStats() (map[string]*ifStats, error) {
 		}
 
 		parts := strings.Split(line, ":")
+
 		if len(parts) != 2 {
 			continue
 		}
@@ -195,33 +230,33 @@ func readStats() (map[string]*ifStats, error) {
 
 		// We need at least 16 fields.
 		if len(fields) < 16 {
-			log.Println("Invalid format in '/proc/net/dev' for '%s'", iface)
+			logging.Warn("NET",	"Invalid format in /proc/net/dev for interface %s",	iface,)
 			continue
 		}
 
-		rxBytes  := parseFloat64(fields[0])
-		rxPkts   := parseFloat64(fields[1])
+		rxBytes := parseFloat64(fields[0])
+		rxPkts := parseFloat64(fields[1])
 		rxErrors := parseFloat64(fields[2])
 
-		txBytes  := parseFloat64(fields[8])
-		txPkts   := parseFloat64(fields[9])
+		txBytes := parseFloat64(fields[8])
+		txPkts := parseFloat64(fields[9])
 		txErrors := parseFloat64(fields[10])
-		
-		// Structures that hold per-interface network statistics.
+
+		// Store per-interface statistics.
 		procStats[iface] = &ifStats{
-			rxBytes:   rxBytes,
-			txBytes:   txBytes,
-			rxPkts:    rxPkts,
-			txPkts:    txPkts,
-			rxErrors:  rxErrors,
-			txErrors:  txErrors,
+			rxBytes:  rxBytes,
+			txBytes:  txBytes,
+			rxPkts:   rxPkts,
+			txPkts:   txPkts,
+			rxErrors: rxErrors,
+			txErrors: txErrors,
 		}
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Println("Cannot read '/proc/net/dev'")
+		logging.Error("NET", "Error reading /proc/net/dev: %v", err,)
 		return nil, err
 	}
 
-	return procStats, nil	
+	return procStats, nil
 }

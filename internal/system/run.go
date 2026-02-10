@@ -23,14 +23,11 @@ import (
 	"time"
 
 	"gonitorix/internal/config"
-	"gonitorix/internal/logging"
 	"gonitorix/internal/system/graph"
 )
 
 func Run(ctx context.Context) {
-	logging.Info("SYSTEM", "Starting system monitoring subsystem")
-
-	createRRD()
+	createRRD(ctx)
 	
 	ticker := time.NewTicker(time.Duration(config.SystemCfg.Step) * time.Second)
 	defer ticker.Stop()
@@ -40,10 +37,10 @@ func Run(ctx context.Context) {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				updateRRD()
+				updateRRD(ctx)
 
 				if config.SystemCfg.CreateGraphs {
-					graph.Create()
+					graph.Create(ctx)
 				}
 		}
 	}

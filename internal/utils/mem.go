@@ -16,56 +16,32 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
  
-package system
+package utils
 
 import (
 	"os"
 	"bufio"
-	"fmt"
 	"strings"
-	"strconv"
+	"fmt"
 	"context"
 
 	"gonitorix/internal/logging"
 )
 
-// uptimeToString converts a system uptime value in seconds into a
-// human-readable string representation.
-func uptimeToString(uptime float64) string {
-	secs := int64(uptime)
-
-	d := secs / (60 * 60 * 24)
-	h := (secs / (60 * 60)) % 24
-	m := (secs / 60) % 60
-
-	var dStr string
-	if d > 0 {
-		dStr = fmt.Sprintf("%d days,", d)
-	}
-
-	var result string
-	if h > 0 {
-		result = fmt.Sprintf("%s %dh %dm", dStr, h, m)
-	} else {
-		result = fmt.Sprintf("%s %d min", dStr, m)
-	}
-
-	return strings.TrimSpace(result)
-}
-
-// readUptime reads /proc/uptime and returns the system uptime in seconds.
-func readUptime(ctx context.Context) (float64, error) {
-	file, err := os.Open("/proc/uptime")
+// ReadMemTotal reads /proc/meminfo and returns the total amount of
+// system memory in kilobytes.
+func ReadMemTotal(ctx context.Context) (uint64, error) {
+	file, err := os.Open("/proc/meminfo")
 
 	if err != nil {
-		logging.Error("SYSTEM", "Cannot read /proc/uptime: %v",	err,)
+		logging.Error("UTILS", "Cannot read /proc/meminfo: %v",	err,)
 		return 0, err
 	}
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
 
-	if scanner.Scan() {
+	for scanner.Scan() {
 		select {
 			case <-ctx.Done():
 				return 0, ctx.Err()
@@ -73,23 +49,26 @@ func readUptime(ctx context.Context) (float64, error) {
 		}
 
 		line := scanner.Text()
-		fields := strings.Fields(line)
 
-		if len(fields) >= 1 {
-			val, err := strconv.ParseFloat(fields[0], 64)
+		if strings.HasPrefix(line, "MemTotal:") {
+			fields := strings.Fields(line)
 
-			if err == nil {
+			if len(fields) >= 2 {
+				var val uint64
+
+				if _, err := fmt.Sscanf(fields[1], "%d", &val); err != nil {
+					return 0, err
+				}
+
 				return val, nil
 			}
-
-			logging.Warn("SYSTEM", "Failed to parse uptime value: %s", line,)
 		}
 	}
 
 	if err := scanner.Err(); err != nil {
-		logging.Error("SYSTEM", "Error reading /proc/uptime: %v", err,)
+		logging.Error("UTILS", "Error reading /proc/meminfo: %v", err,)
 		return 0, err
 	}
 
-	return 0, fmt.Errorf("uptime not found")
+	return 0, fmt.Errorf("MemTotal not found")
 }

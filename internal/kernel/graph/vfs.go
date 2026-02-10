@@ -20,15 +20,16 @@ package graph
 
 import (
 	"fmt"
-	"log"
 	"os"
-	"os/exec"
-	
+	"context"
+		
 	"gonitorix/internal/config"
+	"gonitorix/internal/logging"
+	"gonitorix/internal/utils"
 	"gonitorix/internal/graph"
 )
 
-func createVfs(p *graph.GraphPeriod) {
+func createVfs(ctx context.Context, p *graph.GraphPeriod) {
 	rrdFile := config.GlobalCfg.RRDPath + "/" + 
 	           config.GlobalCfg.RRDHostnamePrefix + "kernel.rrd"
 			   
@@ -68,26 +69,22 @@ func createVfs(p *graph.GraphPeriod) {
 			"LINE2:file#EE00EE",
 		},
 	}	
-	_, errStat := os.Stat(graphFile)
 
-	// Remove the PNG file if it exists.
-	if !os.IsNotExist(errStat) {
-		os.Remove(graphFile)
+	// Remove the PNG file if it already exists.
+	if _, err := os.Stat(graphFile); err == nil {
+
+		if err := os.Remove(graphFile); err != nil {
+			logging.Warn("KERNEL", "Failed to remove existing graph %s: %v", graphFile, err,)
+		}
 	}
 
 	args := graph.BuildGraphArgs(t)
 
 	// Additional custom arguments used to generate this graph.
-	args = append(args,
-		"--upper-limit=100",
-		"--lower-limit=0",
-		"--rigid",
-	)
+	args = append(args,	"--upper-limit=100", "--lower-limit=0",	"--rigid",)
 
-	cmd := exec.Command("rrdtool", args...)
-	err := cmd.Run()		
-
-	if err != nil {
-		log.Printf("Error creating image %s: %v\n", graphFile, err)
-	}	
+	// Execute rrdtool graph
+	if err := utils.ExecCommand(ctx, "KERNEL", "rrdtool", args...,); err != nil {
+		logging.Error("KERNEL", "Error creating image %s: %v", graphFile, err,)
+	}
 }

@@ -20,63 +20,103 @@ package net
 
 import ( 
 	"time"
+	"context"
 		
 	"gonitorix/internal/config"
+	"gonitorix/internal/logging"
 )
 
-func updateNetIfStats() {
-	// Update logic for network interface RRD files, including the storage of
-	// historical data required for subsequent updates.
+// filterNetIfStatsByConfig filters the collected network interface statistics
+// and returns only those that are enabled in the configuration file.
+func filterNetIfStatsByConfig(all map[string]*ifStats,) map[string]*ifStats {
+	filtered := make(map[string]*ifStats)
 
-	netIfStats, err := readStats()
+	for _, iface := range config.NetIfCfg.Interfaces {
+		if !iface.Enable {
+			continue
+		}
 
-	if err != nil {
-		return
+		if stats, ok := all[iface.Name]; ok {
+			filtered[iface.Name] = stats
+		}
 	}
 
-	// Perl - Time::HiRes::time();
-	timestamp := float64(time.Now().UnixNano()) / 1e9
-	
-	for iface, stats := range netIfStats {		
-		rrdFile := config.GlobalCfg.RRDPath + "/" + 
-	               config.GlobalCfg.RRDHostnamePrefix + iface + ".rrd"
+	return filtered
+}
 
-		// lastTimestamp is a global package-level variable.
-		if lastTimestamp == 0 {			
+// updateNetIfStats collects network interface counters, computes per-second
+// transmission rates and updates the corresponding RRD databases.
+// The operation can be cancelled through the provided context.
+func updateNetIfStats(ctx context.Context) {
+	// Collect per-interface counters.
+	netIfStats, err := readStats(ctx)
+
+	if err != nil {
+		logging.Warn("NET", "Failed to read interface statistics: %v", err,)
+		return
+	} 
+	
+	if !config.NetIfCfg.AutoDiscovery {
+	    netIfStats = filterNetIfStatsByConfig(netIfStats) 
+	} 
+
+	// High resolution timestamp (seconds).
+	timestamp := float64(time.Now().UnixNano()) / 1e9
+
+	for iface, stats := range netIfStats {
+		select {
+			case <-ctx.Done():
+				logging.Info("NET", "Network stats update cancelled")
+				return
+			default:
+		}
+
+		rrdFile := config.GlobalCfg.RRDPath + "/" +
+				   config.GlobalCfg.RRDHostnamePrefix + iface + ".rrd"
+
+		// First iteration: initialize RRD with zero values.
+		if lastTimestamp == 0 {
 			zeroStats := ifStats{
 				rxBytes:  0,
 				txBytes:  0,
 				rxPkts:   0,
-				txPkts:   0,						
+				txPkts:   0,
 				rxErrors: 0,
 				txErrors: 0,
 			}
 
-			// The first update is performed with zero values.
-			updateRRD(rrdFile, &zeroStats)	
+			if err := updateRRD(ctx, rrdFile, &zeroStats); err != nil {
+				logging.Warn("NET", "RRD initial update failed for %s: %v",	iface, err,)
+				continue
+			}
 		} else {
-			// Compute the elapsed time (deltaT) since the previous polling cycle.
+			// Compute elapsed time since previous cycle.
 			deltaT := timestamp - lastTimestamp
 
-			// Compute rates and save it in history.
+			// Compute rates and save in history.
 			rates := computeRates(iface, stats, deltaT)
 
-			updateRRD(rrdFile, &rates)
+			if err := updateRRD(ctx, rrdFile, &rates); err != nil {
+				logging.Warn("NET", "RRD update failed for %s: %v",	iface, err,)
+				continue
+			}
 		}
 
-		// Store the current snapshot as the previous statistics for the next
-		// polling cycle in a package-level map.
+		// Store snapshot for next delta computation.
 		lastIfstats[iface] = ifStats{
 			rxBytes:  stats.rxBytes,
-			txBytes:  stats.txBytes,	
+			txBytes:  stats.txBytes,
 			rxPkts:   stats.rxPkts,
 			txPkts:   stats.txPkts,
 			rxErrors: stats.rxErrors,
 			txErrors: stats.txErrors,
-		}		
-	}	
+		}
+	}
 
-	// lastTimestamp stores the timestamp of the most recent polling 
-	// cycle in a package-level variable for delta time calculations.
-	lastTimestamp = timestamp	
+	// Save timestamp for next cycle.
+	lastTimestamp = timestamp
+
+	if logging.DebugEnabled() {
+		logging.Debug("NET", "Network statistics updated for %d interfaces", len(netIfStats),)
+	}
 }

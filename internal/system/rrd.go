@@ -20,156 +20,153 @@ package system
 
 import (
 	"os"
-	"os/exec"
 	"strconv"
-	"log"
 	"fmt"
+	"context"
 	
 	"gonitorix/internal/config"
 	"gonitorix/internal/utils"
+	"gonitorix/internal/logging"
 )
 
-func createRRD() {
-	rrdFile := config.GlobalCfg.RRDPath + "/" + 
-	           config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
+func createRRD(ctx context.Context) {
+	rrdFile := config.GlobalCfg.RRDPath + "/" +
+		       config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
 
-	step := config.NetIfCfg.Step
+	step := config.SystemCfg.Step
 	heartbeat := utils.Heartbeat(step)
 
-	_, err := os.Stat(rrdFile)
-
-	if os.IsNotExist(err) {
-		args := []string{
-			"create", rrdFile,
-			"--step", strconv.Itoa(step),
-
-			// --------------------------------------------------
-			// Data Sources
-			// --------------------------------------------------
-			fmt.Sprintf("DS:system_load1:GAUGE:%d:0:U", heartbeat),
-			fmt.Sprintf("DS:system_load5:GAUGE:%d:0:U", heartbeat),
-			fmt.Sprintf("DS:system_load15:GAUGE:%d:0:U", heartbeat),
-
-			fmt.Sprintf("DS:system_nproc:GAUGE:%d:0:U", heartbeat),
-			fmt.Sprintf("DS:system_npslp:GAUGE:%d:0:U", heartbeat),
-			fmt.Sprintf("DS:system_nprun:GAUGE:%d:0:U", heartbeat),
-			fmt.Sprintf("DS:system_npwio:GAUGE:%d:0:U", heartbeat),
-			fmt.Sprintf("DS:system_npzom:GAUGE:%d:0:U", heartbeat),
-			fmt.Sprintf("DS:system_npstp:GAUGE:%d:0:U", heartbeat),
-			fmt.Sprintf("DS:system_npswp:GAUGE:%d:0:U", heartbeat),
-
-			fmt.Sprintf("DS:system_mtotl:GAUGE:%d:0:U", heartbeat),
-			fmt.Sprintf("DS:system_mbuff:GAUGE:%d:0:U", heartbeat),
-			fmt.Sprintf("DS:system_mcach:GAUGE:%d:0:U", heartbeat),
-			fmt.Sprintf("DS:system_mfree:GAUGE:%d:0:U", heartbeat),
-			fmt.Sprintf("DS:system_macti:GAUGE:%d:0:U", heartbeat),
-			fmt.Sprintf("DS:system_minac:GAUGE:%d:0:U", heartbeat),
-
-			fmt.Sprintf("DS:system_entrop:GAUGE:%d:0:U", heartbeat),
-			fmt.Sprintf("DS:system_uptime:GAUGE:%d:0:U", heartbeat),
-		}
-
-		// --------------------------------------------------
-		// DAILY
-		// --------------------------------------------------
-		dailyRows := utils.Rows(step, 1, utils.DaySeconds)
-
-		args = append(args,
-			utils.RRA("AVERAGE", 0.5, 1, dailyRows),
-			utils.RRA("MIN", 0.5, 1, dailyRows),
-			utils.RRA("MAX", 0.5, 1, dailyRows),
-			utils.RRA("LAST", 0.5, 1, dailyRows),
-		)
-
-		// --------------------------------------------------
-		// WEEKLY
-		// --------------------------------------------------
-		weeklyPDP := 30
-		weeklyRows := utils.Rows(step, weeklyPDP, utils.WeekSeconds)
-
-		args = append(args,
-			utils.RRA("AVERAGE", 0.5, weeklyPDP, weeklyRows),
-			utils.RRA("MIN", 0.5, weeklyPDP, weeklyRows),
-			utils.RRA("MAX", 0.5, weeklyPDP, weeklyRows),
-			utils.RRA("LAST", 0.5, weeklyPDP, weeklyRows),
-		)
-
-		// --------------------------------------------------
-		// MONTHLY
-		// --------------------------------------------------
-		monthlyPDP := 60
-		monthlyRows := utils.Rows(step, monthlyPDP, utils.MonthSeconds)
-
-		args = append(args,
-			utils.RRA("AVERAGE", 0.5, monthlyPDP, monthlyRows),
-			utils.RRA("MIN", 0.5, monthlyPDP, monthlyRows),
-			utils.RRA("MAX", 0.5, monthlyPDP, monthlyRows),
-			utils.RRA("LAST", 0.5, monthlyPDP, monthlyRows),
-		)
-
-		// --------------------------------------------------
-		// YEARLY
-		// --------------------------------------------------
-		yearlyPDP := 1440
-
-		for n := 1; n <= config.SystemCfg.MaxHistoricYears; n++ {
-			duration := n * utils.YearSeconds
-			rows := utils.Rows(step, yearlyPDP, duration)
-
-			args = append(args,
-				utils.RRA("AVERAGE", 0.5, yearlyPDP, rows),
-				utils.RRA("MIN", 0.5, yearlyPDP, rows),
-				utils.RRA("MAX", 0.5, yearlyPDP, rows),
-				utils.RRA("LAST", 0.5, yearlyPDP, rows),
-			)
-		}
-
-		cmd := exec.Command("rrdtool", args...)			
-		_, err := cmd.CombinedOutput()
-
-		if err != nil {
-			log.Printf("Error creating RRD '%s': %v\n", rrdFile, err)
+	select {
+		case <-ctx.Done():
 			return
-		}
+		default:
+	}
 
-		log.Printf("Creating RRD '%s'", rrdFile)	
-	} else {
-		log.Printf("RRD '%s' already exists", rrdFile)
-	}	
+	if _, err := os.Stat(rrdFile); err == nil {
+		logging.Info("SYSTEM", "RRD '%s' already exists", rrdFile,)
+		return
+	}
+
+	args := []string{
+		"create", rrdFile,
+		"--step", strconv.Itoa(step),
+
+		// ----------------------------
+		// Data Sources
+		// ----------------------------
+		fmt.Sprintf("DS:system_load1:GAUGE:%d:0:U", heartbeat),
+		fmt.Sprintf("DS:system_load5:GAUGE:%d:0:U", heartbeat),
+		fmt.Sprintf("DS:system_load15:GAUGE:%d:0:U", heartbeat),
+
+		fmt.Sprintf("DS:system_nproc:GAUGE:%d:0:U", heartbeat),
+		fmt.Sprintf("DS:system_npslp:GAUGE:%d:0:U", heartbeat),
+		fmt.Sprintf("DS:system_nprun:GAUGE:%d:0:U", heartbeat),
+		fmt.Sprintf("DS:system_npwio:GAUGE:%d:0:U", heartbeat),
+		fmt.Sprintf("DS:system_npzom:GAUGE:%d:0:U", heartbeat),
+		fmt.Sprintf("DS:system_npstp:GAUGE:%d:0:U", heartbeat),
+		fmt.Sprintf("DS:system_npswp:GAUGE:%d:0:U", heartbeat),
+
+		fmt.Sprintf("DS:system_mtotl:GAUGE:%d:0:U", heartbeat),
+		fmt.Sprintf("DS:system_mbuff:GAUGE:%d:0:U", heartbeat),
+		fmt.Sprintf("DS:system_mcach:GAUGE:%d:0:U", heartbeat),
+		fmt.Sprintf("DS:system_mfree:GAUGE:%d:0:U", heartbeat),
+		fmt.Sprintf("DS:system_macti:GAUGE:%d:0:U", heartbeat),
+		fmt.Sprintf("DS:system_minac:GAUGE:%d:0:U", heartbeat),
+
+		fmt.Sprintf("DS:system_entrop:GAUGE:%d:0:U", heartbeat),
+		fmt.Sprintf("DS:system_uptime:GAUGE:%d:0:U", heartbeat),
+	}
+
+	// ----------------------------
+	// DAILY
+	// ----------------------------
+	dailyRows := utils.Rows(step, 1, utils.DaySeconds)
+
+	args = append(args,
+		utils.RRA("AVERAGE", 0.5, 1, dailyRows),
+		utils.RRA("MIN", 0.5, 1, dailyRows),
+		utils.RRA("MAX", 0.5, 1, dailyRows),
+		utils.RRA("LAST", 0.5, 1, dailyRows),
+	)
+
+	// ----------------------------
+	// WEEKLY
+	// ----------------------------
+	weeklyPDP := 30
+	weeklyRows := utils.Rows(step, weeklyPDP, utils.WeekSeconds)
+
+	args = append(args,
+		utils.RRA("AVERAGE", 0.5, weeklyPDP, weeklyRows),
+		utils.RRA("MIN", 0.5, weeklyPDP, weeklyRows),
+		utils.RRA("MAX", 0.5, weeklyPDP, weeklyRows),
+		utils.RRA("LAST", 0.5, weeklyPDP, weeklyRows),
+	)
+
+	// ----------------------------
+	// MONTHLY
+	// ----------------------------
+	monthlyPDP := 60
+	monthlyRows := utils.Rows(step, monthlyPDP, utils.MonthSeconds)
+
+	args = append(args,
+		utils.RRA("AVERAGE", 0.5, monthlyPDP, monthlyRows),
+		utils.RRA("MIN", 0.5, monthlyPDP, monthlyRows),
+		utils.RRA("MAX", 0.5, monthlyPDP, monthlyRows),
+		utils.RRA("LAST", 0.5, monthlyPDP, monthlyRows),
+	)
+
+	// ----------------------------
+	// YEARLY
+	// ----------------------------
+	yearlyPDP := 1440
+
+	for n := 1; n <= config.SystemCfg.MaxHistoricYears; n++ {
+		duration := n * utils.YearSeconds
+		rows := utils.Rows(step, yearlyPDP, duration)
+
+		args = append(args,
+			utils.RRA("AVERAGE", 0.5, yearlyPDP, rows),
+			utils.RRA("MIN", 0.5, yearlyPDP, rows),
+			utils.RRA("MAX", 0.5, yearlyPDP, rows),
+			utils.RRA("LAST", 0.5, yearlyPDP, rows),
+		)
+	}
+
+	if err := utils.ExecCommand(ctx, "SYSTEM", "rrdtool", args...,); err != nil {
+		logging.Error("SYSTEM", "Error creating RRD '%s'", rrdFile,)
+		return
+	}
+
+	logging.Info("SYSTEM", "Created RRD '%s'", rrdFile,)
 }
 
-func updateRRD() {
-	rrdFile := config.GlobalCfg.RRDPath + "/" + 
-	           config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
+func updateRRD(ctx context.Context) error {
+	rrdFile := config.GlobalCfg.RRDPath + "/" +
+		       config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
 
-	memory, err := readMemory()
-
+	memory, err := readMemory(ctx)
 	if err != nil {
-		log.Printf("readMemory failed: %w\n", err)
+		return err
 	}
 
-	loadavg, err := readLoadAvg()
-
+	loadavg, err := readLoadAvg(ctx)
 	if err != nil {
-		log.Printf("readLoadAvg failed: %w\n", err)
+		return err
 	}
 
-	entropy, err := readEntropy()
-
+	entropy, err := readEntropy(ctx)
 	if err != nil {
-		log.Printf("readEntropy failed: %w\n", err)
+		return err
 	}
 
-	procinfo, err := readProcInfo()
-
+	procinfo, err := readProcInfo(ctx)
 	if err != nil {
-		log.Printf("readProcInfo failed: %w\n", err)
+		return err
 	}
 
-	uptime, err := readUptime()
-
+	uptime, err := readUptime(ctx)
 	if err != nil {
-		log.Printf("readUptime failed: %w\n", err)
+		return err
 	}
 
 	rrdata := fmt.Sprintf(
@@ -180,7 +177,7 @@ func updateRRD() {
 		loadavg["load5"],
 		loadavg["load15"],
 
-		// processos
+		// processes
 		procinfo["total"],
 		procinfo["sleep"],
 		procinfo["run"],
@@ -189,7 +186,7 @@ func updateRRD() {
 		procinfo["stop"],
 		procinfo["swap"],
 
-		// memória
+		// memory
 		memory["MemTotal"],
 		memory["Buffers"],
 		memory["Cached"],
@@ -197,18 +194,15 @@ func updateRRD() {
 		memory["Active"],
 		memory["Inactive"],
 
-		// outros
+		// other
 		entropy,
 		uptime,
 	)
 
-	cmd := exec.Command(
-		"rrdtool", "update", rrdFile, rrdata,
-	)
-
-	out, err := cmd.CombinedOutput()
-
-	if err != nil {
-		log.Printf("RRDTOOL update failed: %v | output: %s\n", err, out)
+	if err := utils.ExecCommand(ctx, "SYSTEM", "rrdtool", "update", rrdFile, rrdata,); err != nil {
+		logging.Error("SYSTEM", "RRDTOOL update failed for %s", rrdFile,)
+		return err
 	}
+
+	return nil
 }

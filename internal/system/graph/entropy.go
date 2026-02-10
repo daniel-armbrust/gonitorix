@@ -20,30 +20,31 @@ package graph
 
 import (
 	"fmt"
-	"log"
-	"os"
-	"os/exec"
+    "os"
+	"context"
 	
 	"gonitorix/internal/config"
+	"gonitorix/internal/logging"
 	"gonitorix/internal/graph"
+	"gonitorix/internal/utils"
 )
 
-func createEntropy(p *graph.GraphPeriod) {
-	// Generates RRD graphs for Entropy.
+// createEntropy generates an RRD graph showing kernel entropy values
+// for the given graph period.
+func createEntropy(ctx context.Context, p *graph.GraphPeriod) {
+	rrdFile := config.GlobalCfg.RRDPath + "/" +
+		       config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
 
-	rrdFile := config.GlobalCfg.RRDPath + "/" + 
-	           config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
-			   
-	graphFile := config.GlobalCfg.GraphPath + "/" + 
-	             config.GlobalCfg.RRDHostnamePrefix + 
-				 "entropy-" + p.Name + ".png"
+	graphFile := config.GlobalCfg.GraphPath + "/" +
+		         config.GlobalCfg.RRDHostnamePrefix +
+		         "entropy-" + p.Name + ".png"
 
 	t := graph.GraphTemplate{
 		Graph:         graphFile,
 		Title:         "Entropy (" + p.Name + ")",
-    	Start:         p.Start,
-    	VerticalLabel: "Size",
-    	XGrid:         p.XGrid,
+		Start:         p.Start,
+		VerticalLabel: "Size",
+		XGrid:         p.XGrid,
 
 		Defs: []string{
 			fmt.Sprintf("DEF:entropy=%s:system_entrop:AVERAGE", rrdFile),
@@ -59,19 +60,16 @@ func createEntropy(p *graph.GraphPeriod) {
 		},
 	}
 
-	_, errStat := os.Stat(graphFile)
-
-	// Remove the PNG file if it exists.
-	if !os.IsNotExist(errStat) {
-		os.Remove(graphFile)
+	// Remove the PNG file if it already exists.
+	if _, err := os.Stat(graphFile); err == nil {
+		if err := os.Remove(graphFile); err != nil {
+			logging.Warn("SYSTEM", "Failed to remove existing graph %s: %v", graphFile, err,)
+		}
 	}
 
 	args := graph.BuildGraphArgs(t)
 
-	cmd := exec.Command("rrdtool", args...)
-	err := cmd.Run()		
-
-	if err != nil {
-		log.Printf("Error creating image %s: %v\n", graphFile, err)
+	if err := utils.ExecCommand(ctx, "SYSTEM", "rrdtool", args...,); err != nil {
+		logging.Error("SYSTEM", "Error creating image %s", graphFile,)
 	}
 }

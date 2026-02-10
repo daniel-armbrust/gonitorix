@@ -31,7 +31,7 @@ func Run(ctx context.Context) {
 	prepareLatencyTargets()
 
 	// Create RRD files.
-	createRRD()
+	createRRD(ctx)
 
 	ticker := time.NewTicker(time.Duration(config.LatencyCfg.Step) * time.Second)
 	defer ticker.Stop()
@@ -41,10 +41,10 @@ func Run(ctx context.Context) {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				measure()
+				measure(ctx)
 				
 				if config.LatencyCfg.CreateGraphs {
-					graph.Create()
+					graph.Create(ctx)
 				}
 		}
 	}

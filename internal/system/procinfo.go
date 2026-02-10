@@ -20,12 +20,19 @@ package system
 
 import (
 	"bufio"
+	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"gonitorix/internal/logging"
 )
 
-func readProcInfo() (map[string]uint64, error) {
+// readProcInfo scans /proc and counts processes by execution state,
+// returning totals for running, sleeping, waiting for I/O, zombie,
+// stopped and swapped processes.
+func readProcInfo(ctx context.Context) (map[string]uint64, error) {
 	procstats := map[string]uint64{
 		"run":    0,
 		"sleep":  0,
@@ -38,10 +45,17 @@ func readProcInfo() (map[string]uint64, error) {
 	dirs, err := filepath.Glob("/proc/[0-9]*")
 
 	if err != nil {
+		logging.Error("SYSTEM", "Failed to list /proc entries: %v",	err,)
 		return nil, err
 	}
 
 	for _, dir := range dirs {
+		select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			default:
+		}
+
 		info, err := os.Stat(dir)
 
 		if err != nil || !info.IsDir() {
@@ -66,26 +80,24 @@ func readProcInfo() (map[string]uint64, error) {
 			line := scanner.Text()
 
 			if strings.HasPrefix(line, "State:") {
-
 				fields := strings.Fields(line)
 
 				if len(fields) >= 2 {
-
 					state := fields[1]
 
 					switch state {
-					case "R":
-						procstats["run"]++
-					case "S":
-						procstats["sleep"]++
-					case "D":
-						procstats["wio"]++
-					case "Z":
-						procstats["zombie"]++
-					case "T":
-						procstats["stop"]++
-					case "W":
-						procstats["swap"]++
+						case "R":
+							procstats["run"]++
+						case "S":
+							procstats["sleep"]++
+						case "D":
+							procstats["wio"]++
+						case "Z":
+							procstats["zombie"]++
+						case "T":
+							procstats["stop"]++
+						case "W":
+							procstats["swap"]++
 					}
 				}
 
@@ -96,12 +108,16 @@ func readProcInfo() (map[string]uint64, error) {
 		f.Close()
 	}
 
-	procstats["total"] = procstats["run"]    +
-						 procstats["sleep"]  +
-						 procstats["wio"]    +
-						 procstats["zombie"] +
-						 procstats["stop"]   +
-						 procstats["swap"]
+	procstats["total"] = procstats["run"] + procstats["sleep"] + procstats["wio"] +
+			             procstats["zombie"] + procstats["stop"] + procstats["swap"]
+
+	if len(procstats) == 0 {
+		return nil, fmt.Errorf("no process statistics collected")
+	}
+
+	if logging.DebugEnabled() {
+		logging.Debug("SYSTEM", "Collected process states: %+v", procstats,)
+	}
 
 	return procstats, nil
 }

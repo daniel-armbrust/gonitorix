@@ -20,22 +20,32 @@ package graph
 
 import (
 	"os"
-	"os/exec"
 	"fmt"
-	"log"
+	"context"
 
 	"gonitorix/internal/config"
+	"gonitorix/internal/utils"
+	"gonitorix/internal/logging"
 	"gonitorix/internal/graph"
 )
 
-func createErrors(p *graph.GraphPeriod) {
+// createErrors generates RRD graphs showing per-interface packet error
+// rates for the given graph period.
+func createErrors(ctx context.Context, p *graph.GraphPeriod) {
 	// Creates error rate graphs for the configured network interfaces.
 	for _, iface := range config.NetIfCfg.Interfaces {
-		rrdFile := config.GlobalCfg.RRDPath  + "/" + 
-	               config.GlobalCfg.RRDHostnamePrefix + iface.Name + ".rrd"
-		
-		graphFile := config.GlobalCfg.RRDPath  + "/" +
-		             config.GlobalCfg.RRDHostnamePrefix + iface.Name +
+		select {
+			case <-ctx.Done():
+				logging.Info("NET", "Error graph generation cancelled")
+				return
+			default:
+		}
+
+		rrdFile := config.GlobalCfg.RRDPath + "/" +
+				   config.GlobalCfg.RRDHostnamePrefix + iface.Name + ".rrd"
+
+		graphFile := config.GlobalCfg.GraphPath + "/" +
+					 config.GlobalCfg.RRDHostnamePrefix + iface.Name +
 					 "_errors-" + p.Name + ".png"
 
 		t := graph.GraphTemplate{
@@ -47,39 +57,36 @@ func createErrors(p *graph.GraphPeriod) {
 
 			Defs: []string{
 				fmt.Sprintf("DEF:in=%s:errors_in:AVERAGE", rrdFile),
-           		fmt.Sprintf("DEF:out=%s:errors_out:AVERAGE", rrdFile),
+				fmt.Sprintf("DEF:out=%s:errors_out:AVERAGE", rrdFile),
 			},
 
 			CDefs: []string{
 				"CDEF:allvalues=in,out,+",
 				"CDEF:e_in=in",
-                "CDEF:e_out=out",
+				"CDEF:e_out=out",
 			},
 
 			Draw: []string{
 				"AREA:e_in#44EE44:Input",
-                "AREA:e_out#4444EE:Output",
-                "AREA:e_out#4444EE:",
-                "AREA:e_in#44EE44:",
-                "LINE1:e_out#0000EE", 
-                "LINE1:e_in#00EE00",
+				"AREA:e_out#4444EE:Output",
+				"AREA:e_out#4444EE:",
+				"AREA:e_in#44EE44:",
+				"LINE1:e_out#0000EE",
+				"LINE1:e_in#00EE00",
 			},
 		}
 
-		_, errStat := os.Stat(graphFile)
-
-		// Remove the PNG file if it exists.
-		if !os.IsNotExist(errStat) {
-			os.Remove(graphFile)
+		// Remove the PNG file if it already exists.
+		if _, err := os.Stat(graphFile); err == nil {
+			if err := os.Remove(graphFile); err != nil {
+				logging.Warn("NET", "Failed to remove existing graph %s: %v", graphFile, err,)
+			}
 		}
 
 		args := graph.BuildGraphArgs(t)
 
-		cmd := exec.Command("rrdtool", args...)
-		err := cmd.Run()		
-
-		if err != nil {
-			log.Printf("Error creating image %s: %v\n", graphFile, err)
+		if err := utils.ExecCommand(ctx, "NET", "rrdtool", args...,); err != nil {
+			logging.Error("NET", "Error creating image %s",	graphFile,)
 		}
 	}
 }

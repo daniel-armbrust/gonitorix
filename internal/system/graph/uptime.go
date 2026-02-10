@@ -20,13 +20,14 @@ package graph
 
 import (
 	"fmt"
-	"log"
 	"os"
-	"os/exec"
 	"strings"
+	"context"
 
 	"gonitorix/internal/config"
+	"gonitorix/internal/logging"
 	"gonitorix/internal/graph"
+	"gonitorix/internal/utils"
 )
 
 type uptimeUnit struct {
@@ -61,26 +62,26 @@ func uptimeUnitConfig(timeUnit string) uptimeUnit {
 	}
 }
 
-func createUptime(p *graph.GraphPeriod) {
-	// Generates RRD graphs for machine Uptime.
+// createUptime generates RRD graphs showing system uptime for the given
+// graph period.
+func createUptime(ctx context.Context, p *graph.GraphPeriod) {
+	rrdFile := config.GlobalCfg.RRDPath + "/" +
+		       config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
 
-	rrdFile := config.GlobalCfg.RRDPath + "/" + 
-	           config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
-			   
-	graphFile := config.GlobalCfg.GraphPath + "/" + 
-	             config.GlobalCfg.RRDHostnamePrefix + 
-				 "uptime-" + p.Name + ".png"
+	graphFile := config.GlobalCfg.GraphPath + "/" +
+		         config.GlobalCfg.RRDHostnamePrefix +
+		         "uptime-" + p.Name + ".png"
 
 	u := uptimeUnitConfig("")
 
 	t := graph.GraphTemplate{
 		Graph:         graphFile,
 		Title:         "Uptime (" + p.Name + ")",
-    	Start:         p.Start,
-    	VerticalLabel: u.yTitle,
-    	Width:         450,
-    	Height:        150,
-    	XGrid:         p.XGrid,
+		Start:         p.Start,
+		VerticalLabel: u.yTitle,
+		Width:         450,
+		Height:        150,
+		XGrid:         p.XGrid,
 
 		Defs: []string{
 			fmt.Sprintf("DEF:uptime=%s:system_uptime:AVERAGE", rrdFile),
@@ -100,19 +101,16 @@ func createUptime(p *graph.GraphPeriod) {
 		},
 	}
 
-	_, errStat := os.Stat(graphFile)
-
-	// Remove the PNG file if it exists.
-	if !os.IsNotExist(errStat) {
-		os.Remove(graphFile)
+	// Remove the PNG file if it already exists.
+	if _, err := os.Stat(graphFile); err == nil {
+		if err := os.Remove(graphFile); err != nil {
+			logging.Warn("SYSTEM", "Failed to remove existing graph %s: %v", graphFile,	err,)
+		}
 	}
 
 	args := graph.BuildGraphArgs(t)
 
-	cmd := exec.Command("rrdtool", args...)
-	err := cmd.Run()		
-
-	if err != nil {
-		log.Printf("Error creating image %s: %v\n", graphFile, err)
-	} 
+	if err := utils.ExecCommand(ctx, "SYSTEM", "rrdtool", args...,); err != nil {
+		logging.Error("SYSTEM",	"Error creating image %s", graphFile,)
+	}
 }

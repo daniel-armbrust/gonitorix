@@ -19,16 +19,17 @@
 package latency
 
 import (
-	"log"
 	"sync"
 	"time"
-
+	"context"
+	
 	"gonitorix/internal/config"
+	"gonitorix/internal/logging"
 )
 
 // measure runs network latency probes for all configured targets with
 // controlled parallelism and stores the results in RRD files.
-func measure() {
+func measure(ctx context.Context) {
 	maxParallel := config.LatencyCfg.MaxParallelProbes
 	timeout := time.Duration(config.LatencyCfg.ProbeTimeoutSecs) * time.Second
 	packetCount := config.LatencyCfg.ProbePackets
@@ -39,27 +40,38 @@ func measure() {
 	var wg sync.WaitGroup
 
 	for _, host := range config.LatencyCfg.Hosts {
+		select {
+			case <-ctx.Done():
+				logging.Info("LATENCY", "Measurement cancelled")
+				return
+			default:
+		}
+
 		wg.Add(1)
 
 		go func(h config.LatencyHost) {
 			defer wg.Done()
 
-			// Acquire semaphore slot.
-			sem <- struct{}{}
+			// Acquire semaphore slot or abort if canceled.
+			select {
+				case sem <- struct{}{}:
+				case <-ctx.Done():
+					return
+			}
+
 			defer func() { <-sem }()
 
-			pingResult, err := pingProbe(h, timeout, packetCount)
+			pingResult, err := pingProbe(ctx, h, timeout, packetCount,)
 
 			if err != nil {
-				log.Printf(
-					"[ERROR] Probe failed for %s: %v",
-					h.Address,
-					err,
-				)
+				logging.Warn("LATENCY", "Probe failed for %s: %v", h.Address, err,)
 				return
 			}
 
-			updateRRD(host.RRDFile, pingResult)
+			if err := updateRRD(ctx, h.RRDFile, pingResult); err != nil {
+				logging.Warn("LATENCY",	"RRD update failed for %s: %v",	h.Address, err,)
+			}
+
 		}(host)
 	}
 

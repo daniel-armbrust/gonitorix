@@ -16,53 +16,38 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
  
-package system
+package utils
 
 import (
-	"bufio"
 	"context"
-	"os"
-	"strconv"
-	"fmt"
+	"os/exec"
+	"strings"
 
 	"gonitorix/internal/logging"
 )
 
-// readEntropy reads the current available kernel entropy value from
-// /proc/sys/kernel/random/entropy_avail.
-func readEntropy(ctx context.Context) (uint64, error) {
-	file, err := os.Open("/proc/sys/kernel/random/entropy_avail")
+// ExecCommand executes an external command, logs it when debug mode is enabled,
+// and returns the combined stdout/stderr output.
+func ExecCommand(ctx context.Context, tag string, name string, args ...string,) error {
+	cmd := exec.CommandContext(ctx, name, args...)
 
-	if err != nil {
-		logging.Error("SYSTEM", "Cannot read entropy file: %v", err,)
-		return 0, err
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-
-	for scanner.Scan() {
-		select {
-			case <-ctx.Done():
-				return 0, ctx.Err()
-			default:
-		}
-
-		line := scanner.Text()
-
-		val, err := strconv.ParseUint(line, 10, 64)
-
-		if err != nil {
-			continue
-		}
-
-		return val, nil
+	if logging.DebugEnabled() {
+		logging.Debug(
+			tag,
+			"Executing command: %s",
+			strings.Join(cmd.Args, " "),
+		)
 	}
 
-	if err := scanner.Err(); err != nil {
-		logging.Error("SYSTEM", "Error reading entropy file: %v", err,)
-		return 0, err
+	out, err := cmd.CombinedOutput()
+
+	if err != nil && logging.DebugEnabled() {
+		logging.Debug(
+			tag,
+			"Command output: %s",
+			string(out),
+		)
 	}
 
-	return 0, fmt.Errorf("no entropy value found")
+	return err
 }

@@ -20,34 +20,35 @@ package graph
 
 import (
 	"fmt"
-	"log"
 	"os"
-	"os/exec"
-	
+	"context"
+		
 	"gonitorix/internal/config"
+	"gonitorix/internal/logging"
 	"gonitorix/internal/graph"
+	"gonitorix/internal/utils"
 )
 
-func createLoadavg(p *graph.GraphPeriod) {
-	// Generates RRD graphs for Load Average.
+// createLoadavg generates RRD graphs showing system load averages
+// for the given graph period.
+func createLoadavg(ctx context.Context, p *graph.GraphPeriod) {
+	rrdFile := config.GlobalCfg.RRDPath + "/" +
+		       config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
 
-	rrdFile := config.GlobalCfg.RRDPath + "/" + 
-	           config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
-			   
-	graphFile := config.GlobalCfg.GraphPath + "/" + 
-	             config.GlobalCfg.RRDHostnamePrefix + 
-				 "loadavg-" + p.Name + ".png"
-	
+	graphFile := config.GlobalCfg.GraphPath + "/" +
+		         config.GlobalCfg.RRDHostnamePrefix +
+		         "loadavg-" + p.Name + ".png"
+
 	t := graph.GraphTemplate{
 		Graph:         graphFile,
 		Title:         "System Load (" + p.Name + ")",
-    	Start:         p.Start,
-    	VerticalLabel: "Load average",
-    	XGrid:         p.XGrid,
+		Start:         p.Start,
+		VerticalLabel: "Load average",
+		XGrid:         p.XGrid,
 
 		Defs: []string{
 			fmt.Sprintf("DEF:load1=%s:system_load1:AVERAGE", rrdFile),
-           	fmt.Sprintf("DEF:load5=%s:system_load5:AVERAGE", rrdFile),
+			fmt.Sprintf("DEF:load5=%s:system_load5:AVERAGE", rrdFile),
 			fmt.Sprintf("DEF:load15=%s:system_load15:AVERAGE", rrdFile),
 		},
 
@@ -56,7 +57,7 @@ func createLoadavg(p *graph.GraphPeriod) {
 		},
 
 		Draw: []string{
-			"AREA:load1#4444EE: 1 min average",
+			"AREA:load1#4444EE:1 min average",
 
 			"GPRINT:load1:LAST: Current\\: %4.2lf",
 			"GPRINT:load1:AVERAGE: Average\\: %4.2lf",
@@ -64,7 +65,7 @@ func createLoadavg(p *graph.GraphPeriod) {
 			"GPRINT:load1:MAX: Max\\: %4.2lf\\n",
 
 			"LINE1:load1#0000EE",
-			"LINE1:load5#EEEE00: 5 min average",
+			"LINE1:load5#EEEE00:5 min average",
 
 			"GPRINT:load5:LAST: Current\\: %4.2lf",
 			"GPRINT:load5:AVERAGE: Average\\: %4.2lf",
@@ -77,25 +78,19 @@ func createLoadavg(p *graph.GraphPeriod) {
 			"GPRINT:load15:AVERAGE: Average\\: %4.2lf",
 			"GPRINT:load15:MIN: Min\\: %4.2lf",
 			"GPRINT:load15:MAX: Max\\: %4.2lf\\n",
-
-			"COMMENT: \\n",
-			"COMMENT:system uptime\\: 4 days, 17h 47m\\c",
 		},
 	}
 
-	_, errStat := os.Stat(graphFile)
-
-	// Remove the PNG file if it exists.
-	if !os.IsNotExist(errStat) {
-		os.Remove(graphFile)
+	// Remove the PNG file if it already exists.
+	if _, err := os.Stat(graphFile); err == nil {
+		if err := os.Remove(graphFile); err != nil {
+			logging.Warn("SYSTEM", "Failed to remove existing graph %s: %v", graphFile,	err,)
+		}
 	}
 
 	args := graph.BuildGraphArgs(t)
 
-	cmd := exec.Command("rrdtool", args...)
-	err := cmd.Run()		
-
-	if err != nil {
-		log.Printf("Error creating image %s: %v\n", graphFile, err)
-	} 
+	if err := utils.ExecCommand(ctx, "SYSTEM", "rrdtool", args...,); err != nil {
+		logging.Error("SYSTEM",	"Error creating image %s", graphFile,)
+	}
 }
