@@ -25,6 +25,8 @@ import (
 	"os/exec"
 	"log"	
 	"context"
+	"os/signal"
+	"syscall"
 		
 	"gonitorix/internal/config"
 	"gonitorix/internal/logging"
@@ -37,31 +39,59 @@ import (
 var GonitorixVersion = "dev"
 
 func startGonitorix() {
-	// Main Loop
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	
+	// Handle shutdown signals
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
 
-	// System Monitoring
+	go func() {
+		sig := <-sigCh
+		logging.Warn("MAIN", "Received signal %s, shutting down...", sig)
+		cancel()
+	}()
+
+	// ---- Startup logs (sequential and deterministic) ----
+
+	if config.SystemCfg.Enable {
+		logging.Info("SYSTEM", "Starting system monitoring subsystem")
+	}
+
+	if config.NetIfCfg.Enable {
+		logging.Info("NETWORK", "Starting network monitoring subsystem")
+	}
+
+	if config.KernelCfg.Enable {
+		logging.Info("KERNEL", "Starting kernel monitoring subsystem")
+	}
+
+	if config.LatencyCfg.Enable {
+		logging.Info("LATENCY", "Starting latency monitoring subsystem")
+	}
+
+	// ---- Launch goroutines AFTER logging ----
+
 	if config.SystemCfg.Enable {
 		go system.Run(ctx)
-	}	
+	}
 
-	// Network Monitoring
 	if config.NetIfCfg.Enable {
 		go net.Run(ctx)
 	}
 
-	// Kernel Monitoring
 	if config.KernelCfg.Enable {
 		go kernel.Run(ctx)
 	}
 
-	// Latency Monitoring
 	if config.LatencyCfg.Enable {
 		go latency.Run(ctx)
 	}
 
+	// Block until cancellation
 	<-ctx.Done()
+
+	logging.Info("MAIN", "Shutdown complete")
 }
 
 func main() {

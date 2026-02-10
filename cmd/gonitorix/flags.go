@@ -22,6 +22,6 @@ import "flag"
 
 var (
 	cfgFile     = flag.String("f", "gonitorix.yaml", "Configuration file path")
-	debug       = flag.Bool("d", false, "Enable debug mode")
+	debug       = flag.Bool("d", false, "Enable debug mode (lots of outputs)")
 	showVersion = flag.Bool("v", false, "Show version and exit")
 )

@@ -23,10 +23,13 @@ import (
 	"time"
 
 	"gonitorix/internal/config"
+	"gonitorix/internal/logging"
 	"gonitorix/internal/system/graph"
 )
 
 func Run(ctx context.Context) {
+	logging.Info("SYSTEM", "Starting system monitoring subsystem")
+
 	createRRD()
 	
 	ticker := time.NewTicker(time.Duration(config.SystemCfg.Step) * time.Second)
