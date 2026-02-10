@@ -25,13 +25,9 @@ import (
 	"strings"
 )
 
+// readProcStat reads /proc/stat and returns cumulative global CPU time counters
+// used by Gonitorix to calculate CPU usage over time.
 func readProcStat() (*procStat, error) {
-	//
-	// /proc/stat - Miscellaneous kernel statistics.
-	// 	   Various pieces of information about kernel activity are available in 
-	// the /proc/stat file.
-	//
-
 	file, err := os.Open("/proc/stat")
 	if err != nil {
 		return nil, err
@@ -103,20 +99,9 @@ func readProcStat() (*procStat, error) {
 	return ps, nil
 }
 
+// readDentryStateStat reads /proc/sys/fs/dentry-state and returns filesystem
+// dentry cache statistics used by Gonitorix for monitoring.
 func readDentryStateStat() (*dentryState, error) {
-	//
-	// /proc/sys/fs/dentry-state 
-	//     Exposes kernel dentry cache usage and statistics.
-	//
-	// /proc/sys/fs/file-nr 
-	//     Reports the number of allocated and available file handles in 
-	//     the kernel.
-	//
-	// /proc/sys/fs/inode-nr
-	//     Provides inode allocation and usage statistics for the 
-	//     filesystem.
-	//
-
 	stats := &dentryState{}
 
 	// --------------------------------------------------

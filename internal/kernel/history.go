@@ -58,12 +58,7 @@ func updateKernelStats() (*procDentryStateStat, error) {
 	dentryStateStat, errDentryStateStat := readDentryStateStat()
 
 	if errProcStat != nil || errDentryStateStat != nil {
-		logging.Warn(
-			"KERNEL",
-			"Kernel stats collection failed (proc=%v dentry=%v)",
-			errProcStat,
-			errDentryStateStat,
-		)
+		logging.Warn("KERNEL", "Kernel stats collection failed (proc=%v dentry=%v)", errProcStat, errDentryStateStat,)
 		return nil, fmt.Errorf("kernel stats collection failed")
 	}
 

@@ -16,14 +16,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
  
-package net
+package netif
 
 import (
 	"context"
 	"time"
 
 	"gonitorix/internal/config"
-	"gonitorix/internal/net/graph"
+	"gonitorix/internal/netif/graph"
 )
 
 func Run(ctx context.Context) {

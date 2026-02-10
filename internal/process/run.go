@@ -15,37 +15,5 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-package latency
-
-import (
-	"context"
-	"time"
-	
-	"gonitorix/internal/config"
-	"gonitorix/internal/latency/graph"
-)
-
-func Run(ctx context.Context) {
-	// Discover IP addresses and network interfaces for latency monitoring.
-	prepareLatencyTargets()
-
-	// Create RRD files.
-	createRRD(ctx)
-
-	ticker := time.NewTicker(time.Duration(config.LatencyCfg.Step) * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				probe(ctx)
-				
-				if config.LatencyCfg.CreateGraphs {
-					graph.Create(ctx)
-				}
-		}
-	}
-}
+ 
+package process

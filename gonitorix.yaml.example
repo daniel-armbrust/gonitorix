@@ -19,6 +19,19 @@ kernel:
   max_historic_years: 1
   create_graphs: true
 
+# Process Monitoring (per-application tracking).
+process:
+  enable: true
+  step: 60
+  max_historic_years: 1
+  create_graphs: true
+  processes:
+    - name: gonitorix
+      description: Gonitorix - monitoring tool
+
+    - name: pihole-FTL
+      description: Pi-hole DNS and query engine
+
 # Network traffic and usage.
 netif:
   enable: true

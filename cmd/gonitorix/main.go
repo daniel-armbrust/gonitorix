@@ -31,7 +31,7 @@ import (
 	"gonitorix/internal/config"
 	"gonitorix/internal/logging"
 	"gonitorix/internal/system"
-	"gonitorix/internal/net"
+	"gonitorix/internal/netif"
 	"gonitorix/internal/kernel"
 	"gonitorix/internal/latency"
 )
@@ -73,7 +73,7 @@ func startGonitorix() {
 	}
 
 	if config.NetIfCfg.Enable {
-		go net.Run(ctx)
+		go netif.Run(ctx)
 	}
 
 	if config.KernelCfg.Enable {

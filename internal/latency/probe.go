@@ -27,9 +27,11 @@ import (
 	"gonitorix/internal/logging"
 )
 
-// measure runs network latency probes for all configured targets with
+// TODO: TCP and UDP probes.
+
+// probe runs network latency probes for all configured targets with
 // controlled parallelism and stores the results in RRD files.
-func measure(ctx context.Context) {
+func probe(ctx context.Context) {
 	maxParallel := config.LatencyCfg.MaxParallelProbes
 	timeout := time.Duration(config.LatencyCfg.ProbeTimeoutSecs) * time.Second
 	packetCount := config.LatencyCfg.ProbePackets

@@ -20,8 +20,8 @@ package graph
 
 import (
 	"os"
-	"fmt"
 	"context"
+	"fmt"
 
 	"gonitorix/internal/config"
 	"gonitorix/internal/utils"
@@ -29,14 +29,15 @@ import (
 	"gonitorix/internal/graph"
 )
 
-// createErrors generates RRD graphs showing per-interface packet error
-// rates for the given graph period.
-func createErrors(ctx context.Context, p *graph.GraphPeriod) {
-	// Creates error rate graphs for the configured network interfaces.
+// createBytes generates RRD graphs showing per-interface byte transmission
+// rates for the given time period.
+func createBytes(ctx context.Context, p *graph.GraphPeriod) {
+	// Generates RRD graphs for byte transmission rates of the configured
+	// network interfaces.
 	for _, iface := range config.NetIfCfg.Interfaces {
 		select {
 			case <-ctx.Done():
-				logging.Info("NET", "Error graph generation cancelled")
+				logging.Info("NETIF", "Byte graph generation cancelled")
 				return
 			default:
 		}
@@ -46,47 +47,62 @@ func createErrors(ctx context.Context, p *graph.GraphPeriod) {
 
 		graphFile := config.GlobalCfg.GraphPath + "/" +
 					 config.GlobalCfg.RRDHostnamePrefix + iface.Name +
-					 "_errors-" + p.Name + ".png"
+					 "_bytes-" + p.Name + ".png"
 
 		t := graph.GraphTemplate{
 			Graph:         graphFile,
 			Title:         iface.Description + " (" + p.Name + ")",
 			Start:         p.Start,
-			VerticalLabel: "Errors/s",
+			VerticalLabel: "Bytes/s",
 			XGrid:         p.XGrid,
 
 			Defs: []string{
-				fmt.Sprintf("DEF:in=%s:errors_in:AVERAGE", rrdFile),
-				fmt.Sprintf("DEF:out=%s:errors_out:AVERAGE", rrdFile),
+				fmt.Sprintf("DEF:in=%s:bytes_in:AVERAGE", rrdFile),
+				fmt.Sprintf("DEF:out=%s:bytes_out:AVERAGE", rrdFile),
 			},
 
 			CDefs: []string{
 				"CDEF:allvalues=in,out,+",
-				"CDEF:e_in=in",
-				"CDEF:e_out=out",
+				"CDEF:B_in=in",
+				"CDEF:B_out=out",
+				"CDEF:K_in=B_in,1024,/",
+				"CDEF:K_out=B_out,1024,/",
+				"COMMENT: \\n",
 			},
 
 			Draw: []string{
-				"AREA:e_in#44EE44:Input",
-				"AREA:e_out#4444EE:Output",
-				"AREA:e_out#4444EE:",
-				"AREA:e_in#44EE44:",
-				"LINE1:e_out#0000EE",
-				"LINE1:e_in#00EE00",
+				"AREA:B_in#44EE44:KB/s Input",
+				"GPRINT:K_in:LAST:     Current\\: %5.0lf",
+				"GPRINT:K_in:AVERAGE: Average\\: %5.0lf",
+				"GPRINT:K_in:MIN:    Min\\: %5.0lf",
+				"GPRINT:K_in:MAX:    Max\\: %5.0lf\\n",
+
+				"AREA:B_out#4444EE:KB/s Output",
+				"GPRINT:K_out:LAST:    Current\\: %5.0lf",
+				"GPRINT:K_out:AVERAGE: Average\\: %5.0lf",
+				"GPRINT:K_out:MIN:    Min\\: %5.0lf",
+				"GPRINT:K_out:MAX:    Max\\: %5.0lf\\n",
+
+				"AREA:B_out#4444EE:",
+				"AREA:B_in#44EE44:",
+				"LINE1:B_out#0000EE",
+				"LINE1:B_in#00EE00",
+				"COMMENT: \\n",
+				"COMMENT: \\n",
 			},
 		}
 
 		// Remove the PNG file if it already exists.
 		if _, err := os.Stat(graphFile); err == nil {
 			if err := os.Remove(graphFile); err != nil {
-				logging.Warn("NET", "Failed to remove existing graph %s: %v", graphFile, err,)
+				logging.Warn("NETIF",	"Failed to remove existing graph %s: %v", graphFile, err,)
 			}
 		}
 
 		args := graph.BuildGraphArgs(t)
 
-		if err := utils.ExecCommand(ctx, "NET", "rrdtool", args...,); err != nil {
-			logging.Error("NET", "Error creating image %s",	graphFile,)
+		if err := utils.ExecCommand(ctx, "NETIF",	"rrdtool", args...,); err != nil {
+			logging.Error("NETIF", "Error creating image %s",	graphFile,)
 		}
 	}
 }

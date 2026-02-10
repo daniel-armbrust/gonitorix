@@ -125,3 +125,26 @@ type latencyWrapper struct {
 }
 
 var LatencyCfg LatencyConfig
+
+// --------------------
+// PROCESSES
+// --------------------
+
+type ProcessConfig struct {
+	Enable           bool           `yaml:"enable"`
+	Step             int            `yaml:"step"`
+	MaxHistoricYears int            `yaml:"max_historic_years"`
+	CreateGraphs     bool           `yaml:"create_graphs"`
+	Processes        []ProcessEntry `yaml:"processes"`
+}
+
+type ProcessEntry struct {
+	Name        string `yaml:"name"`
+	Description string `yaml:"description"`
+}
+
+type processWrapper struct {
+	Process ProcessConfig `yaml:"process"`
+}
+
+var ProcessCfg ProcessConfig

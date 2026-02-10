@@ -15,37 +15,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+ 
+package netif
 
-package latency
+var (
+	// lastTimestamp stores the timestamp of the previous polling cycle and is
+	// used to compute the elapsed time (deltaT) between two reads.
+	lastTimestamp float64
 
-import (
-	"context"
-	"time"
-	
-	"gonitorix/internal/config"
-	"gonitorix/internal/latency/graph"
+	// lastIfStats stores the previous statistics snapshot for each network
+	// interface, used to compute deltas between successive polling cycles.
+	lastIfstats = make(map[string]ifStats)
 )
-
-func Run(ctx context.Context) {
-	// Discover IP addresses and network interfaces for latency monitoring.
-	prepareLatencyTargets()
-
-	// Create RRD files.
-	createRRD(ctx)
-
-	ticker := time.NewTicker(time.Duration(config.LatencyCfg.Step) * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				probe(ctx)
-				
-				if config.LatencyCfg.CreateGraphs {
-					graph.Create(ctx)
-				}
-		}
-	}
-}

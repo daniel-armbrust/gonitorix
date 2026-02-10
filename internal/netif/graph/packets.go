@@ -35,7 +35,7 @@ func createPackets(ctx context.Context, p *graph.GraphPeriod) {
 	for _, iface := range config.NetIfCfg.Interfaces {
 		select {
 			case <-ctx.Done():
-				logging.Info("NET", "Packet graph generation cancelled")
+				logging.Info("NETIF", "Packet graph generation cancelled")
 				return
 			default:
 		}
@@ -78,14 +78,14 @@ func createPackets(ctx context.Context, p *graph.GraphPeriod) {
 		// Remove the PNG file if it already exists.
 		if _, err := os.Stat(graphFile); err == nil {
 			if err := os.Remove(graphFile); err != nil {
-				logging.Warn("NET", "Failed to remove existing graph %s: %v", graphFile, err,)
+				logging.Warn("NETIF", "Failed to remove existing graph %s: %v", graphFile, err,)
 			}
 		}
 
 		args := graph.BuildGraphArgs(t)
 
-		if err := utils.ExecCommand(ctx, "NET", "rrdtool", args...,); err != nil {
-			logging.Error("NET", "Error creating image %s",	graphFile,)
+		if err := utils.ExecCommand(ctx, "NETIF", "rrdtool", args...,); err != nil {
+			logging.Error("NETIF", "Error creating image %s",	graphFile,)
 		}
 	}
 }

@@ -40,6 +40,7 @@ func Load(cfgFile string) {
 		NetIf   NetIfConfig   `yaml:"netif"`
 		Kernel  KernelConfig  `yaml:"kernel"`
 		Latency LatencyConfig `yaml:"latency"`
+		Process ProcessConfig `yaml:"process"`
 	}
 
 	if err := yaml.Unmarshal(data, &wrapper); err != nil {
@@ -53,6 +54,7 @@ func Load(cfgFile string) {
 	NetIfCfg   = wrapper.NetIf
 	KernelCfg  = wrapper.Kernel
 	LatencyCfg = wrapper.Latency
+	ProcessCfg = wrapper.Process
 
 	// Resolve and store the system hostname when hostname prefixing is enabled.
 	if GlobalCfg.HostnamePrefix {

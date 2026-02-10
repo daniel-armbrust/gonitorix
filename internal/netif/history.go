@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
  
-package net
+package netif
 
 import ( 
 	"time"
@@ -52,7 +52,7 @@ func updateNetIfStats(ctx context.Context) {
 	netIfStats, err := readStats(ctx)
 
 	if err != nil {
-		logging.Warn("NET", "Failed to read interface statistics: %v", err,)
+		logging.Warn("NETIF", "Failed to read interface statistics: %v", err,)
 		return
 	} 
 	
@@ -66,7 +66,7 @@ func updateNetIfStats(ctx context.Context) {
 	for iface, stats := range netIfStats {
 		select {
 			case <-ctx.Done():
-				logging.Info("NET", "Network stats update cancelled")
+				logging.Info("NETIF", "Network stats update cancelled")
 				return
 			default:
 		}
@@ -86,7 +86,7 @@ func updateNetIfStats(ctx context.Context) {
 			}
 
 			if err := updateRRD(ctx, rrdFile, &zeroStats); err != nil {
-				logging.Warn("NET", "RRD initial update failed for %s: %v",	iface, err,)
+				logging.Warn("NETIF", "RRD initial update failed for %s: %v",	iface, err,)
 				continue
 			}
 		} else {
@@ -97,7 +97,7 @@ func updateNetIfStats(ctx context.Context) {
 			rates := computeRates(iface, stats, deltaT)
 
 			if err := updateRRD(ctx, rrdFile, &rates); err != nil {
-				logging.Warn("NET", "RRD update failed for %s: %v",	iface, err,)
+				logging.Warn("NETIF", "RRD update failed for %s: %v",	iface, err,)
 				continue
 			}
 		}
@@ -117,6 +117,6 @@ func updateNetIfStats(ctx context.Context) {
 	lastTimestamp = timestamp
 
 	if logging.DebugEnabled() {
-		logging.Debug("NET", "Network statistics updated for %d interfaces", len(netIfStats),)
+		logging.Debug("NETIF", "Network statistics updated for %d interfaces", len(netIfStats),)
 	}
 }

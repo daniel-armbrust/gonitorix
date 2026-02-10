@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
  
-package net
+package netif
 
 import (
 	"os"
@@ -36,7 +36,7 @@ func createRRD(ctx context.Context) {
 	for _, iface := range config.NetIfCfg.Interfaces {
 		select {
 			case <-ctx.Done():
-				logging.Info("NET", "RRD creation cancelled")
+				logging.Info("NETIF", "RRD creation cancelled")
 				return
 			default:
 		}
@@ -45,7 +45,7 @@ func createRRD(ctx context.Context) {
 				   config.GlobalCfg.RRDHostnamePrefix + iface.Name + ".rrd"
 
 		if _, err := os.Stat(rrdFile); err == nil {
-			logging.Info("NET",	"RRD '%s' already exists", rrdFile,)
+			logging.Info("NETIF",	"RRD '%s' already exists", rrdFile,)
 			continue
 		}
 
@@ -119,12 +119,12 @@ func createRRD(ctx context.Context) {
 			)
 		}
 
-		if err := utils.ExecCommand(ctx, "NET", "rrdtool", args...,); err != nil {
-			logging.Error("NET", "Error creating RRD '%s'",	rrdFile,)
+		if err := utils.ExecCommand(ctx, "NETIF", "rrdtool", args...,); err != nil {
+			logging.Error("NETIF", "Error creating RRD '%s'",	rrdFile,)
 			continue
 		}
 
-		logging.Info("NET", "Created RRD '%s'",	rrdFile,)
+		logging.Info("NETIF", "Created RRD '%s'",	rrdFile,)
 	}
 }
 
@@ -139,8 +139,8 @@ func updateRRD(ctx context.Context, rrdFile string, stats *ifStats,) error {
 		stats.txErrors,
 	)
 
-	if err := utils.ExecCommand(ctx, "NET", "rrdtool", "update", rrdFile, rrdata,); err != nil {
-		logging.Error("NET", "RRDTOOL update failed for %s", rrdFile,)
+	if err := utils.ExecCommand(ctx, "NETIF", "rrdtool", "update", rrdFile, rrdata,); err != nil {
+		logging.Error("NETIF", "RRDTOOL update failed for %s", rrdFile,)
 		return err
 	}
 

@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
  
-package net
+package netif
 
 import (
 	"os"
@@ -38,7 +38,7 @@ func discoveryIfaces(ctx context.Context) error {
 	file, err := os.Open("/proc/net/dev")
 
 	if err != nil {
-		logging.Error("NET", "Cannot read /proc/net/dev: %v", err,)
+		logging.Error("NETIF", "Cannot read /proc/net/dev: %v", err,)
 		return err
 	}
 	defer file.Close()
@@ -54,7 +54,7 @@ func discoveryIfaces(ctx context.Context) error {
 	for scanner.Scan() {
 		select {
 			case <-ctx.Done():
-				logging.Info("NET", "Interface discovery cancelled")
+				logging.Info("NETIF", "Interface discovery cancelled")
 				return ctx.Err()
 			default:
 		}
@@ -90,16 +90,16 @@ func discoveryIfaces(ctx context.Context) error {
 		)
 
 		if logging.DebugEnabled() {
-			logging.Debug("NET", "Discovered interface %s",	iface,)
+			logging.Debug("NETIF", "Discovered interface %s",	iface,)
 		}
 	}
 
 	if err := scanner.Err(); err != nil {
-		logging.Error("NET", "Error reading /proc/net/dev: %v", err,)
+		logging.Error("NETIF", "Error reading /proc/net/dev: %v", err,)
 		return err
 	}
 
-	logging.Info("NET", "Discovered %d network interfaces", len(found),)
+	logging.Info("NETIF", "Discovered %d network interfaces", len(found),)
 
 	return nil
 }
@@ -113,7 +113,7 @@ func parseFloat64(s string) float64 {
     v, err := strconv.ParseFloat(s, 64)
 
     if err != nil {
-        logging.Error("NET", "Failed to parse float value %q\n", s)
+        logging.Error("NETIF", "Failed to parse float value %q\n", s)
         return 0
     }
 
@@ -196,7 +196,7 @@ func readStats(ctx context.Context) (map[string]*ifStats, error) {
 	file, err := os.Open("/proc/net/dev")
 
 	if err != nil {
-		logging.Error("NET", "Cannot read /proc/net/dev: %v", err,)
+		logging.Error("NETIF", "Cannot read /proc/net/dev: %v", err,)
 		return nil, err
 	}
 	defer file.Close()
@@ -230,7 +230,7 @@ func readStats(ctx context.Context) (map[string]*ifStats, error) {
 
 		// We need at least 16 fields.
 		if len(fields) < 16 {
-			logging.Warn("NET",	"Invalid format in /proc/net/dev for interface %s",	iface,)
+			logging.Warn("NETIF",	"Invalid format in /proc/net/dev for interface %s",	iface,)
 			continue
 		}
 
@@ -254,7 +254,7 @@ func readStats(ctx context.Context) (map[string]*ifStats, error) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		logging.Error("NET", "Error reading /proc/net/dev: %v", err,)
+		logging.Error("NETIF", "Error reading /proc/net/dev: %v", err,)
 		return nil, err
 	}
 

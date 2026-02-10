@@ -16,14 +16,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
  
-package net
+package netif
 
-var (
-	// lastTimestamp stores the timestamp of the previous polling cycle and is
-	// used to compute the elapsed time (deltaT) between two reads.
-	lastTimestamp float64
-
-	// lastIfStats stores the previous statistics snapshot for each network
-	// interface, used to compute deltas between successive polling cycles.
-	lastIfstats = make(map[string]ifStats)
-)
+// ifStats holds the raw network interface counters read from /proc/net/dev
+// for a single polling cycle.
+type ifStats struct {	 
+	rxBytes  float64
+	txBytes  float64	
+	rxPkts   float64
+	txPkts   float64
+	rxErrors float64
+	txErrors float64
+}
