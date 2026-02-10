@@ -69,7 +69,6 @@ func createPing(p *graph.GraphPeriod) {
 				"LINE2:rtt_avg#00BFFF:Average",
 				`GPRINT:vavg:%1.3lfms\l`,
 
-				// Blank line before loss — must contain text before \l
 				"COMMENT: \\l",
 
 				"COMMENT:Lost packets",

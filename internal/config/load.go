@@ -31,7 +31,7 @@ func Load(cfgFile string) {
 	data, err := os.ReadFile(cfgFile)
 
 	if err != nil {
-		log.Fatalf("The configuration file %q could not be opened: %w\n", cfgFile, err)
+		log.Fatalf("The configuration file %q could not be opened.\n", cfgFile)
 	}
 
 	var wrapper struct {

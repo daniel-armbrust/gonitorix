@@ -19,17 +19,22 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"os"
 	"os/exec"
 	"log"	
 	"context"
 		
 	"gonitorix/internal/config"
+	"gonitorix/internal/logging"
 	"gonitorix/internal/system"
 	"gonitorix/internal/net"
 	"gonitorix/internal/kernel"
 	"gonitorix/internal/latency"
 )
+
+var GonitorixVersion = "dev"
 
 func startGonitorix() {
 	// Main Loop
@@ -60,13 +65,23 @@ func startGonitorix() {
 }
 
 func main() {
-	cfgFile := "gonitorix.yaml"
+	flag.Parse()
 
-	// Loads the configuration into a struct
-	config.Load(cfgFile)
+	// Configure logging level
+	logging.SetDebug(*debug)
 
-	// Verifies that the "rrdtool" binary is available
-	_, errLookPath := exec.LookPath("rrdtool")	
+	if *showVersion {
+		fmt.Println("GONITORIX version", GonitorixVersion)
+		os.Exit(0)
+	}
+
+	if *debug {
+		logging.Debug("MAIN", "Debug mode enabled")
+	}
+	
+	config.Load(*cfgFile)
+
+	_, errLookPath := exec.LookPath("rrdtool")
 
 	if errLookPath != nil {
 		log.Fatalf("GONITORIX needs RRDtool installed to monitor your system.\n")
