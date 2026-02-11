@@ -24,12 +24,12 @@ import (
 	"bufio"
 	"strings"
 	"context"
+	"fmt"
 	
 	"gonitorix/internal/logging"
 )
 
 // ReadProcStat reads /proc/stat and returns cumulative global CPU time counters
-// used by Gonitorix to calculate CPU usage over time.
 func ReadProcStat(ctx context.Context) (*ProcStat, error) {
 	if logging.DebugEnabled() {
 		logging.Debug("PROCFS", "Reading /proc/stat")
@@ -166,7 +166,7 @@ func ReadProcStat(ctx context.Context) (*ProcStat, error) {
 }
 
 // ReadProcDentryStat reads /proc/sys/fs/dentry-state and returns filesystem
-// dentry cache statistics used by Gonitorix for monitoring.
+// dentry cache statistics.
 func ReadProcDentryStat(ctx context.Context) (*ProcDentryStat, error) {
 	if logging.DebugEnabled() {
 		logging.Debug("PROCFS", "Reading dentry/file/inode stats from /proc/sys/fs")
@@ -303,4 +303,91 @@ func ReadProcDentryStat(ctx context.Context) (*ProcDentryStat, error) {
 	}
 
 	return stats, nil
+}
+
+// ReadCPUTimes reads the aggregate CPU time counters from /proc/stat
+// and returns the raw cumulative jiffy values for each CPU state.
+func ReadCPUTimes(ctx context.Context) (*CPUTimes, error) {
+	const path = "/proc/stat"
+
+	if logging.DebugEnabled() {
+		logging.Debug("PROCFS", "Reading %s", path)
+	}
+
+	// Fast cancel
+	select {
+		case <-ctx.Done():
+			if logging.DebugEnabled() {
+				logging.Debug("PROCFS", "Context cancelled before reading %s", path)
+			}
+			return nil, ctx.Err()
+		default:
+	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		if logging.DebugEnabled() {
+			logging.Debug("PROCFS", "Failed to open %s: %v", path, err)
+		}
+		return nil, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+
+		line := scanner.Text()
+
+		if strings.HasPrefix(line, "cpu ") {
+			fields := strings.Fields(line)
+
+			if len(fields) < 10 {
+				return nil, fmt.Errorf("invalid cpu line format")
+			}
+
+			user, _   := strconv.ParseUint(fields[1], 10, 64)
+			nice, _   := strconv.ParseUint(fields[2], 10, 64)
+			system, _ := strconv.ParseUint(fields[3], 10, 64)
+			idle, _   := strconv.ParseUint(fields[4], 10, 64)
+			iowait, _ := strconv.ParseUint(fields[5], 10, 64)
+			irq, _    := strconv.ParseUint(fields[6], 10, 64)
+			sirq, _   := strconv.ParseUint(fields[7], 10, 64)
+			steal, _  := strconv.ParseUint(fields[8], 10, 64)
+
+			var guest uint64
+			if len(fields) > 9 {
+				guest, _ = strconv.ParseUint(fields[9], 10, 64)
+			}
+
+			if logging.DebugEnabled() {
+				logging.Debug(
+					"PROCFS",
+					"CPU raw times user=%d nice=%d sys=%d idle=%d iowait=%d irq=%d sirq=%d steal=%d guest=%d",
+					user, nice, system, idle, iowait, irq, sirq, steal, guest,
+				)
+			}
+
+			return &CPUTimes{
+				User:    user,
+				Nice:    nice,
+				System:  system,
+				Idle:    idle,
+				IOWait:  iowait,
+				IRQ:     irq,
+				SoftIRQ: sirq,
+				Steal:   steal,
+				Guest:   guest,
+			}, nil
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return nil, fmt.Errorf("cpu line not found in /proc/stat")
 }

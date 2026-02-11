@@ -48,3 +48,42 @@ type NetIfStats struct {
 	RxErrors float64
 	TxErrors float64
 }
+
+type ProcessStat struct {
+	PID        int
+	UTime      uint64
+	STime      uint64
+	Threads    int64
+	StartTime  uint64
+	VSizeBytes uint64
+}
+
+type ProcessIOStat struct {
+	PID        int
+	RChar      uint64
+	WChar      uint64
+	ReadBytes  uint64
+	WriteBytes uint64
+
+	DiskBytes uint64
+	NetBytes  uint64
+}
+
+type ProcessFDStat struct {
+	PID                    int
+	OpenFDs                int
+	VoluntaryCtxSwitches   uint64
+	InvoluntaryCtxSwitches uint64
+}
+
+type CPUTimes struct {
+	User   uint64
+	Nice   uint64
+	System uint64
+	Idle   uint64
+	IOWait uint64
+	IRQ    uint64
+	SoftIRQ uint64
+	Steal  uint64
+	Guest  uint64
+}
