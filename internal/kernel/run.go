@@ -38,8 +38,8 @@ func Run(ctx context.Context) {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:				
-				stats, err := updateKernelStats()
-
+				stats, err := readKernelStatsAndStoreHistory(ctx)
+				
 				if err != nil {
 					logging.Warn("KERNEL", "Failed to collect kernel stats: %v", err,)
 					continue

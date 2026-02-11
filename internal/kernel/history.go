@@ -21,15 +21,17 @@ package kernel
 import (
 	"math"
 	"fmt"
+	"context"
 
-	"gonitorix/internal/logging"
+	"gonitorix/internal/procfs"
+	"gonitorix/internal/logging"	
 )
 
-// nanKernelStats returns a procDentryStateStat with NaN values for all CPU
+// nanKernelStats returns a ProcDentryStat with NaN values for all CPU
 // percentage fields while preserving counter and VFS statistics.
 // It is used when CPU deltas are invalid or cannot be computed.
-func nanKernelStats(procStat *procStat,	dentry *dentryState,) procDentryStateStat {
-	return procDentryStateStat{
+func nanKernelStats(procStat *procfs.ProcStat, dentry *procfs.ProcDentryStat,) procStatDentryStat {
+	return procStatDentryStat{
 		user:   math.NaN(),
 		nice:   math.NaN(),
 		sys:    math.NaN(),
@@ -40,58 +42,65 @@ func nanKernelStats(procStat *procStat,	dentry *dentryState,) procDentryStateSta
 		steal:  math.NaN(),
 		guest:  math.NaN(),
 
-		contextSwitches: procStat.contextSwitches,
-		forks:           procStat.forks,
-		vforks:          procStat.vforks,
+		contextSwitches: procStat.ContextSwitches,
+		forks:           procStat.Forks,
+		vforks:          procStat.Vforks,
 
-		dentry: dentry.dentry,
-		file:   dentry.file,
-		inode:  dentry.inode,
+		dentry: dentry.Dentry,
+		file:   dentry.File,
+		inode:  dentry.Inode,
 	}
 }
 
 // Reads kernel-related metrics from /proc, computes CPU usage percentages 
 // and filesystem statistics, updates the historical snapshot used for delta 
 // calculations, and writes the resulting values to the RRD database.
-func updateKernelStats() (*procDentryStateStat, error) {
-	procStat, errProcStat := readProcStat()
-	dentryStateStat, errDentryStateStat := readDentryStateStat()
+func readKernelStatsAndStoreHistory(ctx context.Context,) (*procStatDentryStat, error) {
+	select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+	}
 
-	if errProcStat != nil || errDentryStateStat != nil {
-		logging.Warn("KERNEL", "Kernel stats collection failed (proc=%v dentry=%v)", errProcStat, errDentryStateStat,)
+	// Read data from /proc
+	procStat, errProcStat := procfs.ReadProcStat(ctx)
+	dentryStat, errDentryStat := procfs.ReadProcDentryStat(ctx)
+
+	if errProcStat != nil || errDentryStat != nil {
+		logging.Warn("KERNEL", "Kernel stats collection failed (proc=%v dentry=%v)", errProcStat, errDentryStat,)
 		return nil, fmt.Errorf("kernel stats collection failed")
 	}
 
-	stats := procDentryStateStat{}
+	stats := procStatDentryStat{}
 
 	// Validate current CPU counters against the previous sample before
 	// computing deltas.
-	if procStat.user >= lastProcStat.user &&
-		procStat.nice >= lastProcStat.nice &&
-		procStat.sys >= lastProcStat.sys &&
-		procStat.idle >= lastProcStat.idle &&
-		procStat.iowait >= lastProcStat.iowait &&
-		procStat.irq >= lastProcStat.irq &&
-		procStat.sirq >= lastProcStat.sirq &&
-		procStat.steal >= lastProcStat.steal &&
-		procStat.guest >= lastProcStat.guest {
+	if procStat.User >= lastProcStat.User &&
+		procStat.Nice >= lastProcStat.Nice &&
+		procStat.Sys >= lastProcStat.Sys &&
+		procStat.Idle >= lastProcStat.Idle &&
+		procStat.Iowait >= lastProcStat.Iowait &&
+		procStat.IRQ >= lastProcStat.IRQ &&
+		procStat.SIRQ >= lastProcStat.SIRQ &&
+		procStat.Steal >= lastProcStat.Steal &&
+		procStat.Guest >= lastProcStat.Guest {
 
-		userDelta := procStat.user - lastProcStat.user
-		niceDelta := procStat.nice - lastProcStat.nice
-		sysDelta := procStat.sys - lastProcStat.sys
-		idleDelta := procStat.idle - lastProcStat.idle
-		iowDelta := procStat.iowait - lastProcStat.iowait
-		irqDelta := procStat.irq - lastProcStat.irq
-		sirqDelta := procStat.sirq - lastProcStat.sirq
-		stealDelta := procStat.steal - lastProcStat.steal
-		guestDelta := procStat.guest - lastProcStat.guest
+		userDelta := procStat.User - lastProcStat.User
+		niceDelta := procStat.Nice - lastProcStat.Nice
+		sysDelta := procStat.Sys - lastProcStat.Sys
+		idleDelta := procStat.Idle - lastProcStat.Idle
+		iowDelta := procStat.Iowait - lastProcStat.Iowait
+		irqDelta := procStat.IRQ - lastProcStat.IRQ
+		sirqDelta := procStat.SIRQ - lastProcStat.SIRQ
+		stealDelta := procStat.Steal - lastProcStat.Steal
+		guestDelta := procStat.Guest - lastProcStat.Guest
 
 		total := userDelta + niceDelta + sysDelta + idleDelta +
 			iowDelta + irqDelta + sirqDelta + stealDelta +
 			guestDelta
 
 		if total > 0 {
-			stats = procDentryStateStat{
+			stats = procStatDentryStat{
 				user:   (userDelta * 100) / total,
 				nice:   (niceDelta * 100) / total,
 				sys:    (sysDelta * 100) / total,
@@ -102,20 +111,19 @@ func updateKernelStats() (*procDentryStateStat, error) {
 				steal:  (stealDelta * 100) / total,
 				guest:  (guestDelta * 100) / total,
 
-				contextSwitches: procStat.contextSwitches,
-				forks:           procStat.forks,
-				vforks:          procStat.vforks,
+				contextSwitches: procStat.ContextSwitches,
+				forks:           procStat.Forks,
+				vforks:          procStat.Vforks,
 
-				dentry: dentryStateStat.dentry,
-				file:   dentryStateStat.file,
-				inode:  dentryStateStat.inode,
+				dentry: dentryStat.Dentry,
+				file:   dentryStat.File,
+				inode:  dentryStat.Inode,
 			}
 		} else {
-			stats = nanKernelStats(procStat, dentryStateStat)
+			stats = nanKernelStats(procStat, dentryStat)
 		}
-
 	} else {
-		stats = nanKernelStats(procStat, dentryStateStat)
+		stats = nanKernelStats(procStat, dentryStat)
 	}
 
 	// Save history

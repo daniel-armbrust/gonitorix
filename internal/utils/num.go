@@ -16,37 +16,34 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
  
-package process
+package utils
 
 import (
-	"context"
-	"time"
-		
-	"gonitorix/internal/config"
-	//"gonitorix/internal/latency/graph"
+	"strconv"
+	"math"
+	
+	"gonitorix/internal/logging"
 )
 
-func Run(ctx context.Context) {	
-	// Create RRD files.
-	createRRD(ctx)
+// ParseFloat64 converts a numeric string into float64.
+// It returns 0 when the value cannot be parsed.
+func ParseFloat64(s string) float64 {
+	// Parses a string into a float64 value, logging an error on failure, 
+	// and rounds the result to 6 decimal places.
 
-	// Call to measuring routine to initialize the last values for calculating 
-	// the differences. This way, the first update call will actually measure 
-	// correct values.
+    v, err := strconv.ParseFloat(s, 64)
 
-	ticker := time.NewTicker(time.Duration(config.ProcessCfg.Step) * time.Second)
-	defer ticker.Stop()
+    if err != nil {
+        logging.Error("NETIF", "Failed to parse float value %q\n", s)
+        return 0
+    }
 
-	for {
-		select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				// probe(ctx)
-				
-				// if config.ProcessCfg.CreateGraphs {
-				// 	graph.Create(ctx)
-				// }
-		}
-	}
+    return math.Round(v*1e6) / 1e6
+}
+
+// RoundFloat64 rounds a float64 value to the specified number of decimal 
+// places.
+func RoundFloat64(v float64) float64 {
+	// Rounds a float64 value to a fixed precision of 6 decimal places.
+    return math.Round(v*1e6) / 1e6
 }

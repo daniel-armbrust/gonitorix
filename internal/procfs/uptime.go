@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
  
-package system
+package procfs
 
 import (
 	"os"
@@ -54,7 +54,7 @@ func uptimeToString(uptime float64) string {
 }
 
 // readUptime reads /proc/uptime and returns the system uptime in seconds.
-func readUptime(ctx context.Context) (float64, error) {
+func ReadUptime(ctx context.Context) (float64, error) {
 	file, err := os.Open("/proc/uptime")
 
 	if err != nil {

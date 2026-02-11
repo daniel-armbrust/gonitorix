@@ -16,15 +16,35 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
  
-package netif
+package procfs
 
-// ifStats holds the raw network interface counters read from /proc/net/dev
-// for a single polling cycle.
-type ifStats struct {	 
-	rxBytes  float64
-	txBytes  float64	
-	rxPkts   float64
-	txPkts   float64
-	rxErrors float64
-	txErrors float64
+type ProcStat struct {
+	User   float64
+	Nice   float64
+	Sys    float64
+	Idle   float64
+	Iowait float64
+	IRQ    float64
+	SIRQ   float64
+	Steal  float64
+	Guest  float64
+
+	ContextSwitches int64
+	Forks           int64
+	Vforks          int64
+}
+
+type ProcDentryStat struct {
+	Dentry float64
+	File   float64
+	Inode  float64
+}
+
+type NetIfStats struct {	 
+	RxBytes  float64
+	TxBytes  float64	
+	RxPkts   float64
+	TxPkts   float64
+	RxErrors float64
+	TxErrors float64
 }

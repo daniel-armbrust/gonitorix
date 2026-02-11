@@ -120,7 +120,7 @@ func createRRD(ctx context.Context) {
 	}
 }
 
-func updateRRD(ctx context.Context, stats *procDentryStateStat) error {
+func updateRRD(ctx context.Context, stats *procStatDentryStat) error {
 	rrdFile := config.GlobalCfg.RRDPath + "/" +
 		       config.GlobalCfg.RRDHostnamePrefix + "kernel.rrd"
 

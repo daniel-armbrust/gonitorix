@@ -18,29 +18,7 @@
 
 package kernel
 
-type procStat struct {
-	user   float64
-	nice   float64
-	sys    float64
-	idle   float64
-	iowait float64
-	irq    float64
-	sirq   float64
-	steal  float64
-	guest  float64
-
-	contextSwitches int64
-	forks           int64
-	vforks          int64
-}
-
-type dentryState struct {
-	dentry float64
-	file   float64
-	inode  float64
-}
-
-type procDentryStateStat struct {
+type procStatDentryStat struct {
 	user   float64
 	nice   float64
 	sys    float64

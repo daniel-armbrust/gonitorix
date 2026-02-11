@@ -24,12 +24,13 @@ import (
 		
 	"gonitorix/internal/config"
 	"gonitorix/internal/logging"
+	"gonitorix/internal/procfs"
 )
 
 // filterNetIfStatsByConfig filters the collected network interface statistics
 // and returns only those that are enabled in the configuration file.
-func filterNetIfStatsByConfig(all map[string]*ifStats,) map[string]*ifStats {
-	filtered := make(map[string]*ifStats)
+func filterNetIfStatsByConfig(all map[string]*procfs.NetIfStats,) map[string]*procfs.NetIfStats {
+	filtered := make(map[string]*procfs.NetIfStats)
 
 	for _, iface := range config.NetIfCfg.Interfaces {
 		if !iface.Enable {
@@ -47,9 +48,9 @@ func filterNetIfStatsByConfig(all map[string]*ifStats,) map[string]*ifStats {
 // updateNetIfStats collects network interface counters, computes per-second
 // transmission rates and updates the corresponding RRD databases.
 // The operation can be cancelled through the provided context.
-func updateNetIfStats(ctx context.Context) {
+func readNetIfStatsAndStoreHistory(ctx context.Context) {
 	// Collect per-interface counters.
-	netIfStats, err := readStats(ctx)
+	procStats, err := procfs.ReadNetIfStats(ctx)
 
 	if err != nil {
 		logging.Warn("NETIF", "Failed to read interface statistics: %v", err,)
@@ -57,13 +58,13 @@ func updateNetIfStats(ctx context.Context) {
 	} 
 	
 	if !config.NetIfCfg.AutoDiscovery {
-	    netIfStats = filterNetIfStatsByConfig(netIfStats) 
+	    procStats = filterNetIfStatsByConfig(procStats) 
 	} 
 
 	// High resolution timestamp (seconds).
 	timestamp := float64(time.Now().UnixNano()) / 1e9
 
-	for iface, stats := range netIfStats {
+	for iface, stats := range procStats {
 		select {
 			case <-ctx.Done():
 				logging.Info("NETIF", "Network stats update cancelled")
@@ -76,17 +77,17 @@ func updateNetIfStats(ctx context.Context) {
 
 		// First iteration: initialize RRD with zero values.
 		if lastTimestamp == 0 {
-			zeroStats := ifStats{
-				rxBytes:  0,
-				txBytes:  0,
-				rxPkts:   0,
-				txPkts:   0,
-				rxErrors: 0,
-				txErrors: 0,
+			zeroStats := procfs.NetIfStats{
+				RxBytes:  0,
+				TxBytes:  0,
+				RxPkts:   0,
+				TxPkts:   0,
+				RxErrors: 0,
+				TxErrors: 0,
 			}
 
 			if err := updateRRD(ctx, rrdFile, &zeroStats); err != nil {
-				logging.Warn("NETIF", "RRD initial update failed for %s: %v",	iface, err,)
+				logging.Warn("NETIF", "RRD initial update failed for %s: %v", iface, err,)
 				continue
 			}
 		} else {
@@ -103,13 +104,13 @@ func updateNetIfStats(ctx context.Context) {
 		}
 
 		// Store snapshot for next delta computation.
-		lastIfstats[iface] = ifStats{
-			rxBytes:  stats.rxBytes,
-			txBytes:  stats.txBytes,
-			rxPkts:   stats.rxPkts,
-			txPkts:   stats.txPkts,
-			rxErrors: stats.rxErrors,
-			txErrors: stats.txErrors,
+		lastNetIfstats[iface] = procfs.NetIfStats{
+			RxBytes:  stats.RxBytes,
+			TxBytes:  stats.TxBytes,
+			RxPkts:   stats.RxPkts,
+			TxPkts:   stats.TxPkts,
+			RxErrors: stats.RxErrors,
+			TxErrors: stats.TxErrors,
 		}
 	}
 
@@ -117,6 +118,6 @@ func updateNetIfStats(ctx context.Context) {
 	lastTimestamp = timestamp
 
 	if logging.DebugEnabled() {
-		logging.Debug("NETIF", "Network statistics updated for %d interfaces", len(netIfStats),)
+		logging.Debug("NETIF", "Network statistics updated for %d interfaces", len(procStats),)
 	}
 }

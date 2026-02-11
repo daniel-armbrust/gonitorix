@@ -27,6 +27,7 @@ import (
 	"gonitorix/internal/config"
 	"gonitorix/internal/logging"
 	"gonitorix/internal/utils"
+	"gonitorix/internal/procfs"
 )
 
 func createRRD(ctx context.Context) {
@@ -128,15 +129,15 @@ func createRRD(ctx context.Context) {
 	}
 }
 
-func updateRRD(ctx context.Context, rrdFile string, stats *ifStats,) error {
+func updateRRD(ctx context.Context, rrdFile string, stats *procfs.NetIfStats,) error {
 	rrdata := fmt.Sprintf(
 		"N:%.6f:%.6f:%.6f:%.6f:%.6f:%.6f",
-		stats.rxBytes,
-		stats.txBytes,
-		stats.rxPkts,
-		stats.txPkts,
-		stats.rxErrors,
-		stats.txErrors,
+		stats.RxBytes,
+		stats.TxBytes,
+		stats.RxPkts,
+		stats.TxPkts,
+		stats.RxErrors,
+		stats.TxErrors,
 	)
 
 	if err := utils.ExecCommand(ctx, "NETIF", "rrdtool", "update", rrdFile, rrdata,); err != nil {

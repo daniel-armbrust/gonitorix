@@ -16,25 +16,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
  
-package utils
+package procfs
 
 import (
-	"os"
 	"bufio"
-	"strings"
-	"fmt"
 	"context"
+	"os"
+	"strconv"
+	"fmt"
 
 	"gonitorix/internal/logging"
 )
 
-// ReadMemTotal reads /proc/meminfo and returns the total amount of
-// system memory in kilobytes.
-func ReadMemTotal(ctx context.Context) (uint64, error) {
-	file, err := os.Open("/proc/meminfo")
+// ReadEntropy reads the current available kernel entropy value from
+// /proc/sys/kernel/random/entropy_avail.
+func ReadEntropy(ctx context.Context) (uint64, error) {
+	file, err := os.Open("/proc/sys/kernel/random/entropy_avail")
 
 	if err != nil {
-		logging.Error("UTILS", "Cannot read /proc/meminfo: %v",	err,)
+		logging.Error("SYSTEM", "Cannot read entropy file: %v", err,)
 		return 0, err
 	}
 	defer file.Close()
@@ -50,25 +50,19 @@ func ReadMemTotal(ctx context.Context) (uint64, error) {
 
 		line := scanner.Text()
 
-		if strings.HasPrefix(line, "MemTotal:") {
-			fields := strings.Fields(line)
+		val, err := strconv.ParseUint(line, 10, 64)
 
-			if len(fields) >= 2 {
-				var val uint64
-
-				if _, err := fmt.Sscanf(fields[1], "%d", &val); err != nil {
-					return 0, err
-				}
-
-				return val, nil
-			}
+		if err != nil {
+			continue
 		}
+
+		return val, nil
 	}
 
 	if err := scanner.Err(); err != nil {
-		logging.Error("UTILS", "Error reading /proc/meminfo: %v", err,)
+		logging.Error("SYSTEM", "Error reading entropy file: %v", err,)
 		return 0, err
 	}
 
-	return 0, fmt.Errorf("MemTotal not found")
+	return 0, fmt.Errorf("no entropy value found")
 }

@@ -26,7 +26,8 @@ import (
 	"gonitorix/internal/config"
 	"gonitorix/internal/graph"
 	"gonitorix/internal/utils"
-	"gonitorix/internal/logging"		
+	"gonitorix/internal/logging"	
+	"gonitorix/internal/procfs"	
 )
 
 // createMeminfo generates RRD graphs showing system memory allocation
@@ -39,7 +40,7 @@ func createMeminfo(ctx context.Context, p *graph.GraphPeriod) {
 			     config.GlobalCfg.RRDHostnamePrefix +
 			     "mem-" + p.Name + ".png"
 
-	totalMemKB, err := utils.ReadMemTotal(ctx)
+	totalMemKB, err := procfs.ReadMemTotal(ctx)
 
 	if err != nil {
 		logging.Warn("SYSTEM", "Unable to read total memory: %v", err,)

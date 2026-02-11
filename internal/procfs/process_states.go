@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
  
-package system
+package procfs
 
 import (
 	"bufio"
@@ -29,10 +29,10 @@ import (
 	"gonitorix/internal/logging"
 )
 
-// readProcInfo scans /proc and counts processes by execution state,
+// ReadProcessStateCounts scans /proc and counts processes by execution state,
 // returning totals for running, sleeping, waiting for I/O, zombie,
 // stopped and swapped processes.
-func readProcInfo(ctx context.Context) (map[string]uint64, error) {
+func ReadProcessStateCounts(ctx context.Context) (map[string]uint64, error) {
 	procstats := map[string]uint64{
 		"run":    0,
 		"sleep":  0,

@@ -22,6 +22,8 @@ import (
 	"context"
 	"os/exec"
 	"strings"
+	"bytes"
+	"time"
 
 	"gonitorix/internal/logging"
 )
@@ -32,11 +34,7 @@ func ExecCommand(ctx context.Context, tag string, name string, args ...string,) 
 	cmd := exec.CommandContext(ctx, name, args...)
 
 	if logging.DebugEnabled() {
-		logging.Debug(
-			tag,
-			"Executing command: %s",
-			strings.Join(cmd.Args, " "),
-		)
+		logging.Debug(tag, "Executing command: %s",	strings.Join(cmd.Args, " "),)
 	}
 
 	out, err := cmd.CombinedOutput()
@@ -50,4 +48,44 @@ func ExecCommand(ctx context.Context, tag string, name string, args ...string,) 
 	}
 
 	return err
+}
+
+// ExecCommandOutput executes a command with arguments and returns the
+// combined stdout and stderr output as a string.
+func ExecCommandOutput(ctx context.Context, tag string, cmd string, args ...string) (string, error) {
+	if logging.DebugEnabled() {
+		logging.Debug(tag, "Executing command: %s %v", cmd, args)
+	}
+
+	// Derive timeout from caller context
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	command := exec.CommandContext(ctx, cmd, args...)
+
+	var buf bytes.Buffer
+	command.Stdout = &buf
+	command.Stderr = &buf
+
+	err := command.Run()
+
+	out := buf.String()
+
+	if ctx.Err() == context.DeadlineExceeded {
+		if logging.DebugEnabled() {
+			logging.Debug(tag, "Timeout running: %s %v", cmd, args)
+		}
+		return out, ctx.Err()
+	}
+
+	if err != nil && logging.DebugEnabled() {
+		logging.Debug(tag, "Error: %v", err)
+		logging.Debug(tag, "Output:\n%s", out)
+	}
+
+	if logging.DebugEnabled() && err == nil {
+		logging.Debug(tag, "Output:\n%s", out)
+	}
+
+	return out, err
 }

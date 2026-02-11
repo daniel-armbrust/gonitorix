@@ -27,6 +27,7 @@ import (
 	"gonitorix/internal/config"
 	"gonitorix/internal/utils"
 	"gonitorix/internal/logging"
+	"gonitorix/internal/procfs"
 )
 
 func createRRD(ctx context.Context) {
@@ -144,27 +145,27 @@ func updateRRD(ctx context.Context) error {
 	rrdFile := config.GlobalCfg.RRDPath + "/" +
 		       config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
 
-	memory, err := readMemory(ctx)
+	memory, err := procfs.ReadMemory(ctx)
 	if err != nil {
 		return err
 	}
 
-	loadavg, err := readLoadAvg(ctx)
+	loadavg, err := procfs.ReadLoadAvg(ctx)
 	if err != nil {
 		return err
 	}
 
-	entropy, err := readEntropy(ctx)
+	entropy, err := procfs.ReadEntropy(ctx)
 	if err != nil {
 		return err
 	}
 
-	procinfo, err := readProcInfo(ctx)
+	procinfo, err := procfs.ReadProcessStateCounts(ctx)
 	if err != nil {
 		return err
 	}
 
-	uptime, err := readUptime(ctx)
+	uptime, err := procfs.ReadUptime(ctx)
 	if err != nil {
 		return err
 	}

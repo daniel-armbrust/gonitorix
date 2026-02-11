@@ -18,6 +18,8 @@
 
 package kernel
 
+import "gonitorix/internal/procfs"
+
 var (	
-	lastProcStat = procStat{}
+	lastProcStat = procfs.ProcStat{}
 )

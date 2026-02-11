@@ -17,36 +17,3 @@
  */
  
 package process
-
-import (
-	"context"
-	"time"
-		
-	"gonitorix/internal/config"
-	//"gonitorix/internal/latency/graph"
-)
-
-func Run(ctx context.Context) {	
-	// Create RRD files.
-	createRRD(ctx)
-
-	// Call to measuring routine to initialize the last values for calculating 
-	// the differences. This way, the first update call will actually measure 
-	// correct values.
-
-	ticker := time.NewTicker(time.Duration(config.ProcessCfg.Step) * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				// probe(ctx)
-				
-				// if config.ProcessCfg.CreateGraphs {
-				// 	graph.Create(ctx)
-				// }
-		}
-	}
-}

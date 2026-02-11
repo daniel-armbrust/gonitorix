@@ -23,21 +23,22 @@ import (
 	"time"
 
 	"gonitorix/internal/config"
-	"gonitorix/internal/netif/graph"
+	"gonitorix/internal/procfs"
+	"gonitorix/internal/netif/graph"	
 )
 
 func Run(ctx context.Context) {
 	if config.NetIfCfg.AutoDiscovery {
-		discoveryIfaces(ctx)
+		procfs.DiscoveryIfaces(ctx)
 	}
 
 	// Create RRD files.
 	createRRD(ctx)
 
-	// Call to updateNetIfStats routine to initialize the last values 
-	// for calculating the differences. This way, the first update call 
-	// will actually measure correct values.
-	updateNetIfStats(ctx)
+	// Call to readNetIfStatsAndStoreHistory routine to initialize the last 
+	// values for calculating the differences. This way, the first update 
+	// call will actually measure correct values.
+	readNetIfStatsAndStoreHistory(ctx)
 	
 	ticker := time.NewTicker(time.Duration(config.NetIfCfg.Step) * time.Second)
 	defer ticker.Stop()
@@ -47,7 +48,7 @@ func Run(ctx context.Context) {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				updateNetIfStats(ctx)
+				readNetIfStatsAndStoreHistory(ctx)
 				
 				if config.NetIfCfg.CreateGraphs {
 					graph.Create(ctx)

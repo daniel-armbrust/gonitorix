@@ -18,6 +18,8 @@
  
 package netif
 
+import "gonitorix/internal/procfs"
+
 var (
 	// lastTimestamp stores the timestamp of the previous polling cycle and is
 	// used to compute the elapsed time (deltaT) between two reads.
@@ -25,5 +27,5 @@ var (
 
 	// lastIfStats stores the previous statistics snapshot for each network
 	// interface, used to compute deltas between successive polling cycles.
-	lastIfstats = make(map[string]ifStats)
+	lastNetIfstats = make(map[string]procfs.NetIfStats)
 )

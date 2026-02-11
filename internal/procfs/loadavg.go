@@ -16,53 +16,69 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
  
-package system
+package procfs
 
 import (
 	"bufio"
 	"context"
 	"os"
+	"regexp"
 	"strconv"
 	"fmt"
 
 	"gonitorix/internal/logging"
 )
 
-// readEntropy reads the current available kernel entropy value from
-// /proc/sys/kernel/random/entropy_avail.
-func readEntropy(ctx context.Context) (uint64, error) {
-	file, err := os.Open("/proc/sys/kernel/random/entropy_avail")
+// ReadLoadAvg reads /proc/loadavg and returns the system load averages
+// for 1, 5 and 15 minutes.
+func ReadLoadAvg(ctx context.Context) (map[string]float64, error) {
+	file, err := os.Open("/proc/loadavg")
 
 	if err != nil {
-		logging.Error("SYSTEM", "Cannot read entropy file: %v", err,)
-		return 0, err
+		logging.Error("SYSTEM", "Cannot read /proc/loadavg: %v", err,)
+		return nil, err
 	}
 	defer file.Close()
+
+	re := regexp.MustCompile(`^(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)`)
+
+	load := make(map[string]float64)
 
 	scanner := bufio.NewScanner(file)
 
 	for scanner.Scan() {
 		select {
 			case <-ctx.Done():
-				return 0, ctx.Err()
+				return nil, ctx.Err()
 			default:
 		}
 
 		line := scanner.Text()
 
-		val, err := strconv.ParseUint(line, 10, 64)
+		m := re.FindStringSubmatch(line)
 
-		if err != nil {
-			continue
+		if len(m) == 4 {
+			load1, err1 := strconv.ParseFloat(m[1], 64)
+			load5, err5 := strconv.ParseFloat(m[2], 64)
+			load15, err15 := strconv.ParseFloat(m[3], 64)
+
+			if err1 != nil || err5 != nil || err15 != nil {
+				logging.Warn("SYSTEM", "Failed to parse loadavg values: %s", line,)
+				continue
+			}
+
+			load["load1"] = load1
+			load["load5"] = load5
+			load["load15"] = load15
+
+			return load, nil
 		}
-
-		return val, nil
 	}
 
 	if err := scanner.Err(); err != nil {
-		logging.Error("SYSTEM", "Error reading entropy file: %v", err,)
-		return 0, err
+		logging.Error("SYSTEM", "Error reading /proc/loadavg: %v", err,)
+		return nil, err
 	}
 
-	return 0, fmt.Errorf("no entropy value found")
+	return nil, fmt.Errorf("no load average values found")
 }

@@ -16,23 +16,69 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
  
-package system
+package procfs
 
 import (
-	"bufio"
-	"context"
-	"fmt"
 	"os"
+	"bufio"
+	"strings"
+	"fmt"
+	"context"
 	"regexp"
 	"strconv"
 
 	"gonitorix/internal/logging"
 )
 
-// readMemory reads /proc/meminfo and returns selected memory statistics
+// ReadMemTotal reads /proc/meminfo and returns the total amount of
+// system memory in kilobytes.
+func ReadMemTotal(ctx context.Context) (uint64, error) {
+	file, err := os.Open("/proc/meminfo")
+
+	if err != nil {
+		logging.Error("UTILS", "Cannot read /proc/meminfo: %v",	err,)
+		return 0, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		select {
+			case <-ctx.Done():
+				return 0, ctx.Err()
+			default:
+		}
+
+		line := scanner.Text()
+
+		if strings.HasPrefix(line, "MemTotal:") {
+			fields := strings.Fields(line)
+
+			if len(fields) >= 2 {
+				var val uint64
+
+				if _, err := fmt.Sscanf(fields[1], "%d", &val); err != nil {
+					return 0, err
+				}
+
+				return val, nil
+			}
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		logging.Error("UTILS", "Error reading /proc/meminfo: %v", err,)
+		return 0, err
+	}
+
+	return 0, fmt.Errorf("MemTotal not found")
+}
+
+// ReadMemory reads /proc/meminfo and returns selected memory statistics
 // such as total, free, buffers, cache and active/inactive pages.
 // The operation can be cancelled through the provided context.
-func readMemory(ctx context.Context) (map[string]uint64, error) {
+func ReadMemory(ctx context.Context) (map[string]uint64, error) {
 	file, err := os.Open("/proc/meminfo")
 
 	if err != nil {
