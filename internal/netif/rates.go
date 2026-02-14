@@ -50,17 +50,17 @@ func rate6(current, previous, deltaT float64) float64 {
 
 // computeRates calculates per-second rates from counter deltas between
 // the current and previous samples.
-func computeRates(iface string, stats *procfs.NetIfStats, deltaT float64) procfs.NetIfStats {
+func computeRates(iface string, stats *procfs.NetIfStat, deltaT float64) procfs.NetIfStat {
 	// Computes per-second transmission rates by comparing current interface 
 	// counters with previously stored historical values.
 	
-	var rates procfs.NetIfStats
+	var rates procfs.NetIfStat
 
 	for i := range config.NetIfCfg.Interfaces {
 		if iface == config.NetIfCfg.Interfaces[i].Name {
 
 			// Retrieves previously stored historical values.
-			lastStats := lastNetIfstats[iface]
+			lastStats := lastNetIfStats[iface]
 
 			rxBytes  := rate6(stats.RxBytes,  lastStats.RxBytes,  deltaT)
 			txBytes  := rate6(stats.TxBytes,  lastStats.TxBytes,  deltaT)
@@ -69,7 +69,7 @@ func computeRates(iface string, stats *procfs.NetIfStats, deltaT float64) procfs
 			rxErrors := rate6(stats.RxErrors, lastStats.RxErrors, deltaT)
 			txErrors := rate6(stats.TxErrors, lastStats.TxErrors, deltaT)
 
-			rates = procfs.NetIfStats{
+			rates = procfs.NetIfStat{
 				RxBytes:  rxBytes,
 				TxBytes:  txBytes,
 				RxPkts:   rxPkts,

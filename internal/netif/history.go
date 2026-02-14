@@ -29,8 +29,8 @@ import (
 
 // filterNetIfStatsByConfig filters the collected network interface statistics
 // and returns only those that are enabled in the configuration file.
-func filterNetIfStatsByConfig(all map[string]*procfs.NetIfStats,) map[string]*procfs.NetIfStats {
-	filtered := make(map[string]*procfs.NetIfStats)
+func filterNetIfStatsByConfig(all map[string]*procfs.NetIfStat,) map[string]*procfs.NetIfStat {
+	filtered := make(map[string]*procfs.NetIfStat)
 
 	for _, iface := range config.NetIfCfg.Interfaces {
 		if !iface.Enable {
@@ -77,7 +77,7 @@ func readNetIfStatsAndStoreHistory(ctx context.Context) {
 
 		// First iteration: initialize RRD with zero values.
 		if lastTimestamp == 0 {
-			zeroStats := procfs.NetIfStats{
+			zeroStats := procfs.NetIfStat{
 				RxBytes:  0,
 				TxBytes:  0,
 				RxPkts:   0,
@@ -104,7 +104,7 @@ func readNetIfStatsAndStoreHistory(ctx context.Context) {
 		}
 
 		// Store snapshot for next delta computation.
-		lastNetIfstats[iface] = procfs.NetIfStats{
+		lastNetIfStats[iface] = procfs.NetIfStat{
 			RxBytes:  stats.RxBytes,
 			TxBytes:  stats.TxBytes,
 			RxPkts:   stats.RxPkts,

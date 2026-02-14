@@ -27,5 +27,5 @@ var (
 
 	// lastIfStats stores the previous statistics snapshot for each network
 	// interface, used to compute deltas between successive polling cycles.
-	lastNetIfstats = make(map[string]procfs.NetIfStats)
+	lastNetIfStats = make(map[string]procfs.NetIfStat)
 )

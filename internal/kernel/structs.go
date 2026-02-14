@@ -29,9 +29,9 @@ type procStatDentryStat struct {
 	steal  float64
 	guest  float64
 
-	contextSwitches int64
-	forks           int64
-	vforks          int64
+	contextSwitches uint64
+	forks           uint64
+	vforks          uint64
 
 	dentry float64
 	file   float64

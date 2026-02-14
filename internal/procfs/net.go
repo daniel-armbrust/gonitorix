@@ -33,9 +33,9 @@ import (
 // ReadNetIfStats reads /proc/net/dev and returns a map containing per-interface
 // network statistics such as bytes, packets and errors counters.
 // The operation can be cancelled through the provided context.
-func ReadNetIfStats(ctx context.Context) (map[string]*NetIfStats, error) {
+func ReadNetIfStats(ctx context.Context) (map[string]*NetIfStat, error) {
 	// Map that stores per-interface statistics read from /proc/net/dev.
-	procNetIfStats := make(map[string]*NetIfStats)
+	procNetIfStats := make(map[string]*NetIfStat)
 
 	file, err := os.Open("/proc/net/dev")
 
@@ -87,7 +87,7 @@ func ReadNetIfStats(ctx context.Context) (map[string]*NetIfStats, error) {
 		txErrors := utils.ParseFloat64(fields[10])
 
 		// Store per-interface statistics.
-		procNetIfStats[iface] = &NetIfStats{
+		procNetIfStats[iface] = &NetIfStat{
 			RxBytes:  rxBytes,
 			TxBytes:  txBytes,
 			RxPkts:   rxPkts,

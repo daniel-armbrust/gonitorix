@@ -18,7 +18,10 @@
 
  package utils
 
- import "strings"
+ import (
+	"fmt"
+	"strings"
+ )
 
 // SanitizeName converts an arbitrary name into a filesystem-safe string.
 // It strips accents, lowercases the input, replaces spaces with dashes,
@@ -28,6 +31,31 @@ func SanitizeName(s string) string {
 	s = strings.ReplaceAll(s, ":", "_")
 	s = strings.ReplaceAll(s, ".", "_")
 	s = strings.ReplaceAll(s, "/", "_")
+	s = strings.ReplaceAll(s, " ", "_")
 
 	return s
+}
+
+// UptimeToString converts a system uptime value in seconds into a
+// human-readable string representation.
+func UptimeToString(uptime float64) string {
+	secs := int64(uptime)
+
+	d := secs / (60 * 60 * 24)
+	h := (secs / (60 * 60)) % 24
+	m := (secs / 60) % 60
+
+	var dStr string
+	if d > 0 {
+		dStr = fmt.Sprintf("%d days,", d)
+	}
+
+	var result string
+	if h > 0 {
+		result = fmt.Sprintf("%s %dh %dm", dStr, h, m)
+	} else {
+		result = fmt.Sprintf("%s %d min", dStr, m)
+	}
+
+	return strings.TrimSpace(result)
 }

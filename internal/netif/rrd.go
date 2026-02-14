@@ -129,7 +129,7 @@ func createRRD(ctx context.Context) {
 	}
 }
 
-func updateRRD(ctx context.Context, rrdFile string, stats *procfs.NetIfStats,) error {
+func updateRRD(ctx context.Context, rrdFile string, stats *procfs.NetIfStat) error {
 	rrdata := fmt.Sprintf(
 		"N:%.6f:%.6f:%.6f:%.6f:%.6f:%.6f",
 		stats.RxBytes,

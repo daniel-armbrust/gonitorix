@@ -165,7 +165,7 @@ func updateRRD(ctx context.Context) error {
 		return err
 	}
 
-	uptime, err := procfs.ReadUptime(ctx)
+	uptime, err := procfs.ReadSystemUptime(ctx)
 	if err != nil {
 		return err
 	}

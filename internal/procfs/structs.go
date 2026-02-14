@@ -18,29 +18,10 @@
  
 package procfs
 
-type ProcStat struct {
-	User   float64
-	Nice   float64
-	Sys    float64
-	Idle   float64
-	Iowait float64
-	IRQ    float64
-	SIRQ   float64
-	Steal  float64
-	Guest  float64
-
-	ContextSwitches int64
-	Forks           int64
-	Vforks          int64
-}
-
-type ProcDentryStat struct {
-	Dentry float64
-	File   float64
-	Inode  float64
-}
-
-type NetIfStats struct {	 
+// -----------------------------------------------------
+// /proc/net/dev (Network devices available and traffic)
+// -----------------------------------------------------
+type NetIfStat struct {	 
 	RxBytes  float64
 	TxBytes  float64	
 	RxPkts   float64
@@ -49,6 +30,42 @@ type NetIfStats struct {
 	TxErrors float64
 }
 
+// -----------------------------------------------------
+// /proc/stat (CPU + global kernel counters)
+// -----------------------------------------------------
+type ProcStat struct {
+	User    uint64
+	Nice    uint64
+	System  uint64
+	Idle    uint64
+	IOWait  uint64
+	IRQ     uint64
+	SoftIRQ uint64
+	Steal   uint64
+	Guest   uint64
+
+	ContextSwitches uint64
+	Forks           uint64
+	Vforks          uint64
+}
+
+// -----------------------------------------------------
+// /proc/sys/fs/* raw counters
+// -----------------------------------------------------
+type ProcDentryStat struct {
+	DentryUsed   uint64
+	DentryUnused uint64
+
+	FileUsed uint64
+	FileMax  uint64
+
+	InodeUsed   uint64
+	InodeUnused uint64
+}
+
+// -----------------------------------------------------
+// /proc/<pid>/stat
+// -----------------------------------------------------
 type ProcessStat struct {
 	PID        int
 	UTime      uint64
@@ -58,32 +75,36 @@ type ProcessStat struct {
 	VSizeBytes uint64
 }
 
+// -----------------------------------------------------
+// /proc/<pid>/io
+// -----------------------------------------------------
 type ProcessIOStat struct {
-	PID        int
 	RChar      uint64
 	WChar      uint64
 	ReadBytes  uint64
 	WriteBytes uint64
-
-	DiskBytes uint64
-	NetBytes  uint64
 }
 
-type ProcessFDStat struct {
-	PID                    int
-	OpenFDs                int
+// -----------------------------------------------------
+// /proc/<pid>/fdinfo + /proc/<pid>/status
+// -----------------------------------------------------
+type ProcessFDAndCtxStat struct {
+	OpenFDs                uint64
 	VoluntaryCtxSwitches   uint64
 	InvoluntaryCtxSwitches uint64
 }
 
+// -----------------------------------------------------
+// /proc/stat → cpu line only
+// -----------------------------------------------------
 type CPUTimes struct {
-	User   uint64
-	Nice   uint64
-	System uint64
-	Idle   uint64
-	IOWait uint64
-	IRQ    uint64
+	User    uint64
+	Nice    uint64
+	System  uint64
+	Idle    uint64
+	IOWait  uint64
+	IRQ     uint64
 	SoftIRQ uint64
-	Steal  uint64
-	Guest  uint64
+	Steal   uint64
+	Guest   uint64
 }

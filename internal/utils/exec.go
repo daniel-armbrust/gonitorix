@@ -40,11 +40,7 @@ func ExecCommand(ctx context.Context, tag string, name string, args ...string,) 
 	out, err := cmd.CombinedOutput()
 
 	if err != nil && logging.DebugEnabled() {
-		logging.Debug(
-			tag,
-			"Command output: %s",
-			string(out),
-		)
+		logging.Debug(tag, "Command output: %s", string(out),)
 	}
 
 	return err

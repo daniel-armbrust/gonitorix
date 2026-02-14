@@ -133,7 +133,6 @@ func ReadProcessStat(ctx context.Context, pid int) (*ProcessStat, error) {
 		logging.Debug("PROCFS", "Reading %s", path)
 	}
 
-	// Fast cancel
 	select {
 		case <-ctx.Done():
 			if logging.DebugEnabled() {
@@ -177,6 +176,11 @@ func ReadProcessStat(ctx context.Context, pid int) (*ProcessStat, error) {
 		return nil, fmt.Errorf("short stat line for pid %d", pid)
 	}
 
+	// utime: amount of CPU in user mode
+	// stime: amount of CPU in kernel mode
+	// numThreads: total number of threads in the process (including the main thread)
+	// startTime: is the time the process started after system boot
+	// vsize: total virtual memory size of the process in bytes
 	utime, _ := strconv.ParseUint(fields[10], 10, 64)
 	stime, _ := strconv.ParseUint(fields[11], 10, 64)
 	numThreads, _ := strconv.ParseInt(fields[16], 10, 64)
@@ -184,15 +188,8 @@ func ReadProcessStat(ctx context.Context, pid int) (*ProcessStat, error) {
 	vsize, _ := strconv.ParseUint(fields[19], 10, 64)
 
 	if logging.DebugEnabled() {
-		logging.Debug(
-			"PROCFS",
-			"PID %d stat parsed utime=%d stime=%d threads=%d starttime=%d vsize=%d",
-			pid,
-			utime,
-			stime,
-			numThreads,
-			startTime,
-			vsize,
+		logging.Debug("PROCFS", "PID %d stat parsed utime=%d stime=%d threads=%d starttime=%d vsize=%d",
+			pid, utime, stime, numThreads, startTime, vsize,
 		)
 	}
 
@@ -206,11 +203,9 @@ func ReadProcessStat(ctx context.Context, pid int) (*ProcessStat, error) {
 	}, nil
 }
 
-// ReadProcessIOStat reads /proc/<pid>/io and parses I/O counters for the
-// given process, including rchar, wchar, read_bytes and write_bytes.
-// It also derives aggregated disk I/O (read+write bytes) and a calculated
-// non-disk I/O value based on the difference between character I/O and
-// physical disk bytes.
+// ReadProcessIO reads raw I/O counters from /proc/<pid>/io for the given PID.
+// It parses rchar, wchar, read_bytes and write_bytes and returns their
+// cumulative values since the process started.
 func ReadProcessIOStat(ctx context.Context, pid int) (*ProcessIOStat, error) {
 	path := fmt.Sprintf("/proc/%d/io", pid)
 
@@ -218,7 +213,6 @@ func ReadProcessIOStat(ctx context.Context, pid int) (*ProcessIOStat, error) {
 		logging.Debug("PROCFS", "Reading %s", path)
 	}
 
-	// Fast cancel
 	select {
 		case <-ctx.Done():
 			if logging.DebugEnabled() {
@@ -229,6 +223,7 @@ func ReadProcessIOStat(ctx context.Context, pid int) (*ProcessIOStat, error) {
 	}
 
 	file, err := os.Open(path)
+
 	if err != nil {
 		if logging.DebugEnabled() {
 			logging.Debug("PROCFS", "Failed to open %s: %v", path, err)
@@ -237,9 +232,7 @@ func ReadProcessIOStat(ctx context.Context, pid int) (*ProcessIOStat, error) {
 	}
 	defer file.Close()
 
-	stat := &ProcessIOStat{
-		PID: pid,
-	}
+	stat := &ProcessIOStat{}		
 
 	scanner := bufio.NewScanner(file)
 
@@ -254,131 +247,90 @@ func ReadProcessIOStat(ctx context.Context, pid int) (*ProcessIOStat, error) {
 		line := scanner.Text()
 
 		if logging.DebugEnabled() {
-			logging.Debug("PROCFS", "IO line (pid=%d): %s", pid, line)
+			logging.Debug("PROCFS", "PID %d IO line: %s", pid, line)
 		}
 
 		switch {
 			case strings.HasPrefix(line, "rchar:"):
-				 fmt.Sscanf(line, "rchar: %d", &stat.RChar)
+				fmt.Sscanf(line, "rchar: %d", &stat.RChar)
 
 			case strings.HasPrefix(line, "wchar:"):
-				 fmt.Sscanf(line, "wchar: %d", &stat.WChar)
+				fmt.Sscanf(line, "wchar: %d", &stat.WChar)
 
 			case strings.HasPrefix(line, "read_bytes:"):
-				 fmt.Sscanf(line, "read_bytes: %d", &stat.ReadBytes)
+				fmt.Sscanf(line, "read_bytes: %d", &stat.ReadBytes)
 
 			case strings.HasPrefix(line, "write_bytes:"):
-				 fmt.Sscanf(line, "write_bytes: %d", &stat.WriteBytes)
+				fmt.Sscanf(line, "write_bytes: %d", &stat.WriteBytes)
 		}
 	}
 
 	if err := scanner.Err(); err != nil {
 		if logging.DebugEnabled() {
-			logging.Debug("PROCFS", "Scanner error reading %s: %v", path, err)
+			logging.Debug("PROCFS", "Scanner error for PID %d: %v", pid, err)
 		}
 		return nil, err
 	}
 
-	// Derived values (same logic as Perl)
-	stat.DiskBytes = stat.ReadBytes + stat.WriteBytes
-
-	totalChar := stat.RChar + stat.WChar
-
-	if totalChar > stat.DiskBytes {
-		stat.NetBytes = totalChar - stat.DiskBytes
-	} else {
-		stat.NetBytes = 0
-	}
-
 	if logging.DebugEnabled() {
-		logging.Debug(
-			"PROCFS",
-			"PID %d IO parsed rchar=%d wchar=%d read_bytes=%d write_bytes=%d disk=%d net=%d",
-			pid,
-			stat.RChar,
-			stat.WChar,
-			stat.ReadBytes,
-			stat.WriteBytes,
-			stat.DiskBytes,
-			stat.NetBytes,
+		logging.Debug("PROCFS", "PID %d IO parsed rchar=%d wchar=%d read_bytes=%d write_bytes=%d",
+			pid, stat.RChar, stat.WChar, stat.ReadBytes, stat.WriteBytes,
 		)
 	}
 
 	return stat, nil
 }
 
-// ReadProcessFDAndCtxStat reads /proc/<pid>/fdinfo and /proc/<pid>/status
-// to collect per-process file descriptor count and context switch counters,
-// including voluntary and nonvoluntary context switches.
-func ReadProcessFDAndCtxStat(ctx context.Context, pid int) (*ProcessFDStat, error) {
-	stat := &ProcessFDStat{
-		PID: pid,
-	}
-
-	if logging.DebugEnabled() {
-		logging.Debug("PROCFS", "Reading FD and context stats for PID %d", pid)
-	}
-
-	// Fast cancel
+// ReadProcessFDAndCtxStat reads raw file descriptor and context switch counters
+// for the given PID from /proc/<pid>/fdinfo and /proc/<pid>/status.
+func ReadProcessFDAndCtxStat(ctx context.Context, pid int) (*ProcessFDAndCtxStat, error) {
 	select {
 		case <-ctx.Done():
-			if logging.DebugEnabled() {
-				logging.Debug("PROCFS", "Context cancelled before reading PID %d", pid)
-			}
 			return nil, ctx.Err()
 		default:
 	}
 
-	// ----------------------------------------
+	stat := &ProcessFDAndCtxStat{}
+
+	// --------------------------------------------------
 	// Count open file descriptors
-	// /proc/<pid>/fdinfo
-	// ----------------------------------------
+	// --------------------------------------------------
 	fdPath := fmt.Sprintf("/proc/%d/fdinfo", pid)
 
-	if logging.DebugEnabled() {
-		logging.Debug("PROCFS", "Reading %s", fdPath)
-	}
-
 	entries, err := os.ReadDir(fdPath)
-	if err != nil {
+	if err == nil {
+		for _, entry := range entries {
+
+			if err := ctx.Err(); err != nil {
+				return nil, err
+			}
+
+			name := entry.Name()
+			if len(name) > 0 && name[0] != '.' {
+				stat.OpenFDs++
+			}
+		}
+
 		if logging.DebugEnabled() {
-			logging.Debug("PROCFS", "Failed to read %s: %v", fdPath, err)
+			logging.Debug("PROCFS", "PID %d open FDs: %d", pid, stat.OpenFDs)
+		}
+
+	} else {
+		if logging.DebugEnabled() {
+			logging.Debug("PROCFS", "Cannot read fdinfo for PID %d: %v", pid, err)
 		}
 		return nil, err
 	}
 
-	for _, entry := range entries {
-		if err := ctx.Err(); err != nil {
-			if logging.DebugEnabled() {
-				logging.Debug("PROCFS", "Context cancelled while reading fdinfo for PID %d", pid)
-			}
-			return nil, err
-		}
-
-		name := entry.Name()
-		if len(name) > 0 && name[0] != '.' {
-			stat.OpenFDs++
-		}
-	}
-
-	if logging.DebugEnabled() {
-		logging.Debug("PROCFS", "PID %d open FDs: %d", pid, stat.OpenFDs)
-	}
-
-	// ----------------------------------------
+	// --------------------------------------------------
 	// Context switches
-	// /proc/<pid>/status
-	// ----------------------------------------
+	// --------------------------------------------------
 	statusPath := fmt.Sprintf("/proc/%d/status", pid)
-
-	if logging.DebugEnabled() {
-		logging.Debug("PROCFS", "Reading %s", statusPath)
-	}
 
 	file, err := os.Open(statusPath)
 	if err != nil {
 		if logging.DebugEnabled() {
-			logging.Debug("PROCFS", "Failed to open %s: %v", statusPath, err)
+			logging.Debug("PROCFS", "Cannot open status for PID %d: %v", pid, err)
 		}
 		return nil, err
 	}
@@ -388,9 +340,6 @@ func ReadProcessFDAndCtxStat(ctx context.Context, pid int) (*ProcessFDStat, erro
 
 	for scanner.Scan() {
 		if err := ctx.Err(); err != nil {
-			if logging.DebugEnabled() {
-				logging.Debug("PROCFS", "Context cancelled while reading status for PID %d", pid)
-			}
 			return nil, err
 		}
 
@@ -406,19 +355,12 @@ func ReadProcessFDAndCtxStat(ctx context.Context, pid int) (*ProcessFDStat, erro
 	}
 
 	if err := scanner.Err(); err != nil {
-		if logging.DebugEnabled() {
-			logging.Debug("PROCFS", "Scanner error reading %s: %v", statusPath, err)
-		}
 		return nil, err
 	}
 
 	if logging.DebugEnabled() {
-		logging.Debug(
-			"PROCFS",
-			"PID %d ctx switches voluntary=%d involuntary=%d",
-			pid,
-			stat.VoluntaryCtxSwitches,
-			stat.InvoluntaryCtxSwitches,
+		logging.Debug("PROCFS",	"PID %d ctx switches: voluntary=%d involuntary=%d",
+			pid, stat.VoluntaryCtxSwitches, stat.InvoluntaryCtxSwitches,
 		)
 	}
 
