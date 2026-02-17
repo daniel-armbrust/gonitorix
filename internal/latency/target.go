@@ -74,7 +74,6 @@ func loadDefaultGateways() {
 	}
 }
 
-
 // prepareTargets resolves routing and runtime details for latency monitoring.
 //
 // It populates each LatencyHost with the outgoing network interface and

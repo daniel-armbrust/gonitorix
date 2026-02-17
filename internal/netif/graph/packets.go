@@ -22,6 +22,7 @@ import (
 	"os"
 	"fmt"
 	"context"
+	"path/filepath"
 
 	"gonitorix/internal/config"
 	"gonitorix/internal/utils"
@@ -40,12 +41,15 @@ func createPackets(ctx context.Context, p *graph.GraphPeriod) {
 			default:
 		}
 
-		rrdFile := config.GlobalCfg.RRDPath + "/" +
-				   config.GlobalCfg.RRDHostnamePrefix + iface.Name + ".rrd"
+		rrdFile := filepath.Join(
+			config.GlobalCfg.RRDPath,
+			config.GlobalCfg.RRDHostnamePrefix + iface.Name + ".rrd",
+		)
 
-		graphFile := config.GlobalCfg.GraphPath + "/" +
-				     config.GlobalCfg.RRDHostnamePrefix + iface.Name +
-			         "_pkts-" + p.Name + ".png"
+		graphFile := filepath.Join(
+			config.GlobalCfg.GraphPath,
+			config.GlobalCfg.RRDHostnamePrefix + iface.Name + "_pkts-" + p.Name + ".png",
+		)
 
 		t := graph.GraphTemplate{
 			Graph:         graphFile,

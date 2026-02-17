@@ -21,6 +21,7 @@ package netif
 import ( 
 	"time"
 	"context"
+	"path/filepath"
 		
 	"gonitorix/internal/config"
 	"gonitorix/internal/logging"
@@ -72,8 +73,10 @@ func readNetIfStatsAndStoreHistory(ctx context.Context) {
 			default:
 		}
 
-		rrdFile := config.GlobalCfg.RRDPath + "/" +
-				   config.GlobalCfg.RRDHostnamePrefix + iface + ".rrd"
+		rrdFile := filepath.Join(
+			config.GlobalCfg.RRDPath,
+			config.GlobalCfg.RRDHostnamePrefix + iface + ".rrd",
+		)
 
 		// First iteration: initialize RRD with zero values.
 		if lastTimestamp == 0 {

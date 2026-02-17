@@ -23,6 +23,7 @@ import (
 	"strconv"
 	"fmt"
 	"context"
+	"path/filepath"
 	
 	"gonitorix/internal/config"
 	"gonitorix/internal/logging"
@@ -42,8 +43,10 @@ func createRRD(ctx context.Context) {
 			default:
 		}
 
-		rrdFile := config.GlobalCfg.RRDPath + "/" +
-				   config.GlobalCfg.RRDHostnamePrefix + iface.Name + ".rrd"
+		rrdFile := filepath.Join(
+			config.GlobalCfg.RRDPath,
+			config.GlobalCfg.RRDHostnamePrefix + iface.Name + ".rrd",
+		)
 
 		if _, err := os.Stat(rrdFile); err == nil {
 			logging.Info("NETIF",	"RRD '%s' already exists", rrdFile,)

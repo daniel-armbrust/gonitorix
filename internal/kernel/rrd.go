@@ -23,6 +23,7 @@ package kernel
 	"strconv"
 	"fmt"
 	"context"
+	"path/filepath"
 	
 	"gonitorix/internal/config"
 	"gonitorix/internal/logging"
@@ -30,8 +31,10 @@ package kernel
 )
 
 func createRRD(ctx context.Context) {
-	rrdFile := config.GlobalCfg.RRDPath + "/" + 
-	           config.GlobalCfg.RRDHostnamePrefix + "kernel.rrd"
+	rrdFile := filepath.Join(
+		config.GlobalCfg.RRDPath,
+		config.GlobalCfg.RRDHostnamePrefix + "kernel.rrd",
+	)
 
 	step := config.KernelCfg.Step
 	heartbeat := utils.Heartbeat(step)
@@ -121,8 +124,10 @@ func createRRD(ctx context.Context) {
 }
 
 func updateRRD(ctx context.Context, stats *procStatDentryStat) error {
-	rrdFile := config.GlobalCfg.RRDPath + "/" +
-		       config.GlobalCfg.RRDHostnamePrefix + "kernel.rrd"
+	rrdFile := filepath.Join(
+		config.GlobalCfg.RRDPath,
+		config.GlobalCfg.RRDHostnamePrefix + "kernel.rrd",
+	)
 
 	rrdata := fmt.Sprintf(
 		"N:%s:%s:%s:%s:%s:%s:%s:%s:%s:%d:%d:%d:%s:%s:%s",

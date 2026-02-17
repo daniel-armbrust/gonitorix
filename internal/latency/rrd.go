@@ -23,6 +23,7 @@ import (
 	"strconv"
 	"fmt"
 	"context"
+	"path/filepath"
 
 	"gonitorix/internal/config"
 	"gonitorix/internal/logging"
@@ -31,7 +32,12 @@ import (
 
 func createRRD(ctx context.Context) {
 	for _, host := range config.LatencyCfg.Hosts {
-		rrdFile := config.GlobalCfg.RRDPath + "/" + host.RRDFile
+		
+		// rrdFile := config.GlobalCfg.RRDPath + "/" + host.RRDFile
+		rrdFile := filepath.Join(
+			config.GlobalCfg.RRDPath,
+			host.RRDFile,
+		)		
 
 		step := config.LatencyCfg.Step
 		heartbeat := utils.Heartbeat(step)

@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"context"
+	"path/filepath"
 		
 	"gonitorix/internal/config"
 	"gonitorix/internal/logging"
@@ -30,12 +31,15 @@ import (
 )
 
 func createVfs(ctx context.Context, p *graph.GraphPeriod) {
-	rrdFile := config.GlobalCfg.RRDPath + "/" + 
-	           config.GlobalCfg.RRDHostnamePrefix + "kernel.rrd"
-			   
-	graphFile := config.GlobalCfg.GraphPath + "/" + 
-	             config.GlobalCfg.RRDHostnamePrefix + 
-				 "kernvfs-" + p.Name + ".png"
+	rrdFile := filepath.Join(
+		config.GlobalCfg.RRDPath,
+		config.GlobalCfg.RRDHostnamePrefix + "kernel.rrd",
+	)
+
+	graphFile := filepath.Join(
+		config.GlobalCfg.GraphPath,
+		config.GlobalCfg.RRDHostnamePrefix + "kernvfs-" + p.Name + ".png",
+	)
 
 	t := graph.GraphTemplate{
 		Graph:         graphFile,

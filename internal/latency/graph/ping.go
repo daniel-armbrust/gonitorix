@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"context"
+	"path/filepath"
 		
 	"gonitorix/internal/config"
 	"gonitorix/internal/logging"
@@ -38,7 +39,11 @@ func createPing(ctx context.Context, p *graph.GraphPeriod) {
 			default:
 		}
 
-		rrdFile := config.GlobalCfg.RRDPath + "/" + host.RRDFile
+		// rrdFile := config.GlobalCfg.RRDPath + "/" + host.RRDFile
+		rrdFile := filepath.Join(
+			config.GlobalCfg.RRDPath,
+			host.RRDFile,
+		)
 
 		graphFile := fmt.Sprintf(
 			"%s/latency_%s-%s.png",
