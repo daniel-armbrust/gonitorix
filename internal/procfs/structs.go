@@ -73,6 +73,7 @@ type ProcessStat struct {
 	Threads    int64
 	StartTime  uint64
 	VSizeBytes uint64
+	RSS        int64
 }
 
 // -----------------------------------------------------

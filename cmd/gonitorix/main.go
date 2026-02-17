@@ -34,7 +34,7 @@ import (
 	"gonitorix/internal/netif"
 	"gonitorix/internal/kernel"
 	"gonitorix/internal/latency"
-	// "gonitorix/internal/process"
+	"gonitorix/internal/process"
 )
 
 var GonitorixVersion = "dev"
@@ -89,9 +89,9 @@ func startGonitorix() {
 		go latency.Run(ctx)
 	}
 
-	// if config.ProcessCfg.Enable {
-	// 	go process.Run(ctx)
-	// }
+	if config.ProcessCfg.Enable {
+		go process.Run(ctx)
+	}
 
 	// Block until cancellation
 	<-ctx.Done()

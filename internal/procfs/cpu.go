@@ -304,7 +304,6 @@ func ReadProcDentryStat(ctx context.Context) (*ProcDentryStat, error) {
 	return stats, nil
 }
 
-
 // ReadCPUTimes reads the aggregate CPU time counters from /proc/stat
 // and returns the raw cumulative jiffy values for each CPU state.
 func ReadCPUTimes(ctx context.Context) (*CPUTimes, error) {
@@ -402,77 +401,4 @@ func ReadCPUTimes(ctx context.Context) (*CPUTimes, error) {
 	}
 
 	return nil, fmt.Errorf("cpu line not found in /proc/stat")
-}
-
-// ReadTotalCPUTicks parses the "cpu" line in /proc/stat and returns the
-// sum of all CPU time fields, representing total system CPU ticks.
-func ReadTotalCPUTicks(ctx context.Context) (uint64, error) {
-	if logging.DebugEnabled() {
-		logging.Debug("PROCFS", "Reading total CPU ticks from /proc/stat")
-	}
-
-	select {
-		case <-ctx.Done():
-			return 0, ctx.Err()
-		default:
-	}
-
-	file, err := os.Open("/proc/stat")
-
-	if err != nil {
-		if logging.DebugEnabled() {
-			logging.Debug("PROCFS", "Failed to open /proc/stat: %v", err)
-		}
-		return 0, err
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-
-	for scanner.Scan() {
-		if err := ctx.Err(); err != nil {
-			return 0, err
-		}
-
-		line := scanner.Text()
-
-		// We want only the aggregate CPU line
-		if strings.HasPrefix(line, "cpu ") {
-			if logging.DebugEnabled() {
-				logging.Debug("PROCFS", "CPU line: %s", line)
-			}
-
-			fields := strings.Fields(line)
-
-			// fields[0] = "cpu"
-			if len(fields) < 2 {
-				return 0, fmt.Errorf("invalid cpu line format")
-			}
-
-			var total uint64
-
-			for i := 1; i < len(fields); i++ {
-				val, err := strconv.ParseUint(fields[i], 10, 64)
-				if err != nil {
-					if logging.DebugEnabled() {
-						logging.Debug("PROCFS", "Failed parsing cpu field '%s': %v", fields[i], err)
-					}
-					return 0, err
-				}
-				total += val
-			}
-
-			if logging.DebugEnabled() {
-				logging.Debug("PROCFS", "Total CPU ticks: %d", total)
-			}
-
-			return total, nil
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		return 0, err
-	}
-
-	return 0, fmt.Errorf("cpu line not found in /proc/stat")
 }

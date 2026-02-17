@@ -181,11 +181,13 @@ func ReadProcessStat(ctx context.Context, pid int) (*ProcessStat, error) {
 	// numThreads: total number of threads in the process (including the main thread)
 	// startTime: is the time the process started after system boot
 	// vsize: total virtual memory size of the process in bytes
+	// rss: number of memory pages the process has in real RAM
 	utime, _ := strconv.ParseUint(fields[10], 10, 64)
 	stime, _ := strconv.ParseUint(fields[11], 10, 64)
 	numThreads, _ := strconv.ParseInt(fields[16], 10, 64)
 	startTime, _ := strconv.ParseUint(fields[18], 10, 64)
 	vsize, _ := strconv.ParseUint(fields[19], 10, 64)
+	rss, _ := strconv.ParseInt(fields[20], 10, 64)
 
 	if logging.DebugEnabled() {
 		logging.Debug("PROCFS", "PID %d stat parsed utime=%d stime=%d threads=%d starttime=%d vsize=%d",
@@ -200,12 +202,12 @@ func ReadProcessStat(ctx context.Context, pid int) (*ProcessStat, error) {
 		Threads:    numThreads,
 		StartTime:  startTime,
 		VSizeBytes: vsize,
+		RSS: rss,
 	}, nil
 }
 
-// ReadProcessIO reads raw I/O counters from /proc/<pid>/io for the given PID.
-// It parses rchar, wchar, read_bytes and write_bytes and returns their
-// cumulative values since the process started.
+// ReadProcessIO reads raw I/O counters from /proc/<pid>/io for the given PID
+// and returns their values.
 func ReadProcessIOStat(ctx context.Context, pid int) (*ProcessIOStat, error) {
 	path := fmt.Sprintf("/proc/%d/io", pid)
 
