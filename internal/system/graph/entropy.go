@@ -22,6 +22,7 @@ import (
 	"fmt"
     "os"
 	"context"
+	"path/filepath"
 	
 	"gonitorix/internal/config"
 	"gonitorix/internal/logging"
@@ -32,12 +33,15 @@ import (
 // createEntropy generates an RRD graph showing kernel entropy values
 // for the given graph period.
 func createEntropy(ctx context.Context, p *graph.GraphPeriod) {
-	rrdFile := config.GlobalCfg.RRDPath + "/" +
-		       config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
+	rrdFile := filepath.Join(
+		config.GlobalCfg.RRDPath,
+		config.GlobalCfg.RRDHostnamePrefix + "system.rrd",
+	)
 
-	graphFile := config.GlobalCfg.GraphPath + "/" +
-		         config.GlobalCfg.RRDHostnamePrefix +
-		         "entropy-" + p.Name + ".png"
+	graphFile := filepath.Join(
+		config.GlobalCfg.GraphPath,
+		config.GlobalCfg.RRDHostnamePrefix + "entropy-" + p.Name + ".png",
+	)
 
 	t := graph.GraphTemplate{
 		Graph:         graphFile,

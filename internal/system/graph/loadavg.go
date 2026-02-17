@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"context"
+	"path/filepath"
 		
 	"gonitorix/internal/config"
 	"gonitorix/internal/logging"
@@ -32,13 +33,16 @@ import (
 // createLoadavg generates RRD graphs showing system load averages
 // for the given graph period.
 func createLoadavg(ctx context.Context, p *graph.GraphPeriod) {
-	rrdFile := config.GlobalCfg.RRDPath + "/" +
-		       config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
+	rrdFile := filepath.Join(
+		config.GlobalCfg.RRDPath,
+		config.GlobalCfg.RRDHostnamePrefix + "system.rrd",
+	)
 
-	graphFile := config.GlobalCfg.GraphPath + "/" +
-		         config.GlobalCfg.RRDHostnamePrefix +
-		         "loadavg-" + p.Name + ".png"
-
+	graphFile := filepath.Join(
+		config.GlobalCfg.GraphPath,
+		config.GlobalCfg.RRDHostnamePrefix + "loadavg-" + p.Name + ".png",
+	)
+	
 	t := graph.GraphTemplate{
 		Graph:         graphFile,
 		Title:         "System Load (" + p.Name + ")",
@@ -52,32 +56,27 @@ func createLoadavg(ctx context.Context, p *graph.GraphPeriod) {
 			fmt.Sprintf("DEF:load15=%s:system_load15:AVERAGE", rrdFile),
 		},
 
-		CDefs: []string{
-			"CDEF:allvalues=load1,load5,load15,+,+",
-		},
-
 		Draw: []string{
-			"AREA:load1#4444EE:1 min average",
+			// 1 min
+			fmt.Sprintf("LINE2:load1#4444EE:%-18s", "1 min average"),
+			"GPRINT:load1:LAST:  Cur\\: %6.2lf",
+			"GPRINT:load1:AVERAGE:  Avg\\: %6.2lf",
+			"GPRINT:load1:MIN:  Min\\: %6.2lf",
+			"GPRINT:load1:MAX:  Max\\: %6.2lf\\l",
 
-			"GPRINT:load1:LAST: Current\\: %4.2lf",
-			"GPRINT:load1:AVERAGE: Average\\: %4.2lf",
-			"GPRINT:load1:MIN: Min\\: %4.2lf",
-			"GPRINT:load1:MAX: Max\\: %4.2lf\\n",
+			// 5 min
+			fmt.Sprintf("LINE2:load5#EEEE00:%-18s", "5 min average"),
+			"GPRINT:load5:LAST:  Cur\\: %6.2lf",
+			"GPRINT:load5:AVERAGE:  Avg\\: %6.2lf",
+			"GPRINT:load5:MIN:  Min\\: %6.2lf",
+			"GPRINT:load5:MAX:  Max\\: %6.2lf\\l",
 
-			"LINE1:load1#0000EE",
-			"LINE1:load5#EEEE00:5 min average",
-
-			"GPRINT:load5:LAST: Current\\: %4.2lf",
-			"GPRINT:load5:AVERAGE: Average\\: %4.2lf",
-			"GPRINT:load5:MIN: Min\\: %4.2lf",
-			"GPRINT:load5:MAX: Max\\: %4.2lf\\n",
-
-			"LINE1:load15#00EEEE:15 min average",
-
-			"GPRINT:load15:LAST: Current\\: %4.2lf",
-			"GPRINT:load15:AVERAGE: Average\\: %4.2lf",
-			"GPRINT:load15:MIN: Min\\: %4.2lf",
-			"GPRINT:load15:MAX: Max\\: %4.2lf\\n",
+			// 15 min
+			fmt.Sprintf("LINE2:load15#00EEEE:%-18s", "15 min average"),
+			"GPRINT:load15:LAST:  Cur\\: %6.2lf",
+			"GPRINT:load15:AVERAGE:  Avg\\: %6.2lf",
+			"GPRINT:load15:MIN:  Min\\: %6.2lf",
+			"GPRINT:load15:MAX:  Max\\: %6.2lf\\l",
 		},
 	}
 

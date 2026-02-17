@@ -22,6 +22,7 @@ import (
 	"os"
 	"fmt"
 	"context"
+	"path/filepath"
 	
 	"gonitorix/internal/config"
 	"gonitorix/internal/graph"
@@ -33,12 +34,15 @@ import (
 // createMeminfo generates RRD graphs showing system memory allocation
 // for the given graph period.
 func createMeminfo(ctx context.Context, p *graph.GraphPeriod) {
-	rrdFile := config.GlobalCfg.RRDPath + "/" +
-		       config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
+	rrdFile := filepath.Join(
+		config.GlobalCfg.RRDPath,
+		config.GlobalCfg.RRDHostnamePrefix + "system.rrd",
+	)
 
-	graphFile := config.GlobalCfg.GraphPath + "/" +
-			     config.GlobalCfg.RRDHostnamePrefix +
-			     "mem-" + p.Name + ".png"
+	graphFile := filepath.Join(
+		config.GlobalCfg.GraphPath,
+		config.GlobalCfg.RRDHostnamePrefix + "mem-" + p.Name + ".png",
+	)
 
 	totalMemKB, err := procfs.ReadMemTotal(ctx)
 

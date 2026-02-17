@@ -23,16 +23,18 @@ import (
 	"strconv"
 	"fmt"
 	"context"
+	"path/filepath"
 	
 	"gonitorix/internal/config"
 	"gonitorix/internal/utils"
 	"gonitorix/internal/logging"
-	"gonitorix/internal/procfs"
 )
 
 func createRRD(ctx context.Context) {
-	rrdFile := config.GlobalCfg.RRDPath + "/" +
-		       config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
+	rrdFile := filepath.Join(
+		config.GlobalCfg.RRDPath,
+		config.GlobalCfg.RRDHostnamePrefix + "system.rrd",
+	)
 
 	step := config.SystemCfg.Step
 	heartbeat := utils.Heartbeat(step)
@@ -141,51 +143,30 @@ func createRRD(ctx context.Context) {
 	logging.Info("SYSTEM", "Created RRD '%s'", rrdFile,)
 }
 
-func updateRRD(ctx context.Context) error {
-	rrdFile := config.GlobalCfg.RRDPath + "/" +
-		       config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
+func updateRRD(ctx context.Context,	memory map[string]uint64, loadAvg map[string]float64,
+	           entropy uint64, procInfo map[string]uint64, uptime float64) error {
 
-	memory, err := procfs.ReadMemory(ctx)
-	if err != nil {
-		return err
-	}
-
-	loadavg, err := procfs.ReadLoadAvg(ctx)
-	if err != nil {
-		return err
-	}
-
-	entropy, err := procfs.ReadEntropy(ctx)
-	if err != nil {
-		return err
-	}
-
-	procinfo, err := procfs.ReadProcessStateCounts(ctx)
-	if err != nil {
-		return err
-	}
-
-	uptime, err := procfs.ReadSystemUptime(ctx)
-	if err != nil {
-		return err
-	}
+	rrdFile := filepath.Join(
+		config.GlobalCfg.RRDPath,
+		config.GlobalCfg.RRDHostnamePrefix + "system.rrd",
+	)
 
 	rrdata := fmt.Sprintf(
 		"N:%.2f:%.2f:%.2f:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%.0f",
 
 		// load
-		loadavg["load1"],
-		loadavg["load5"],
-		loadavg["load15"],
+		loadAvg["load1"],
+		loadAvg["load5"],
+		loadAvg["load15"],
 
 		// processes
-		procinfo["total"],
-		procinfo["sleep"],
-		procinfo["run"],
-		procinfo["wio"],
-		procinfo["zombie"],
-		procinfo["stop"],
-		procinfo["swap"],
+		procInfo["total"],
+		procInfo["sleep"],
+		procInfo["run"],
+		procInfo["wio"],
+		procInfo["zombie"],
+		procInfo["stop"],
+		procInfo["swap"],
 
 		// memory
 		memory["MemTotal"],

@@ -37,7 +37,7 @@ func Run(ctx context.Context) {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				updateRRD(ctx)
+				measure(ctx)
 
 				if config.SystemCfg.CreateGraphs {
 					graph.Create(ctx)

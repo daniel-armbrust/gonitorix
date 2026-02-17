@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"context"
+	"path/filepath"
 		
 	"gonitorix/internal/config"
 	"gonitorix/internal/graph"
@@ -32,12 +33,15 @@ import (
 // createProcInfo generates RRD graphs showing process state distribution
 // for the given graph period.
 func createProcInfo(ctx context.Context, p *graph.GraphPeriod) {
-	rrdFile := config.GlobalCfg.RRDPath + "/" +
-		       config.GlobalCfg.RRDHostnamePrefix + "system.rrd"
+	rrdFile := filepath.Join(
+		config.GlobalCfg.RRDPath,
+		config.GlobalCfg.RRDHostnamePrefix + "system.rrd",
+	)
 
-	graphFile := config.GlobalCfg.GraphPath + "/" +
-		         config.GlobalCfg.RRDHostnamePrefix +
-		         "proc-" + p.Name + ".png"
+	graphFile := filepath.Join(
+		config.GlobalCfg.GraphPath,
+		config.GlobalCfg.RRDHostnamePrefix + "proc-" + p.Name + ".png",
+	)
 
 	t := graph.GraphTemplate{
 		Graph:         graphFile,
@@ -61,28 +65,35 @@ func createProcInfo(ctx context.Context, p *graph.GraphPeriod) {
 		},
 
 		Draw: []string{
-			"AREA:npslp#448844:Sleeping",
-			"GPRINT:npslp:LAST: Current\\:%5.0lf\\n",
+			"AREA:npslp#33CC33:Sleeping         ",
+			"GPRINT:npslp:LAST:Cur\\:%5.0lf",
+			"GPRINT:npslp:MIN:Min\\:%5.0lf",
+			"GPRINT:npslp:MAX:Max\\:%5.0lf\\l",
 
-			"LINE2:npwio#EE44EE:Wait I/O",
-			"GPRINT:npwio:LAST: Current\\:%5.0lf\\n",
+			"LINE1:npwio#FFCC00:Wait I/O         ",
+			"GPRINT:npwio:LAST:Cur\\:%5.0lf",
+			"GPRINT:npwio:MIN:Min\\:%5.0lf",
+			"GPRINT:npwio:MAX:Max\\:%5.0lf\\l",
 
-			"LINE2:npzom#00EEEE:Zombie",
-			"GPRINT:npzom:LAST: Current\\:%5.0lf\\n",
+			"LINE1:npzom#AA00FF:Zombie           ",
+			"GPRINT:npzom:LAST:Cur\\:%5.0lf",
+			"GPRINT:npzom:MIN:Min\\:%5.0lf",
+			"GPRINT:npzom:MAX:Max\\:%5.0lf\\l",
 
-			"LINE2:npstp#EEEE00:Stopped",
-			"GPRINT:npstp:LAST: Current\\:%5.0lf\\n",
+			"LINE1:npstp#00AAAA:Stopped          ",
+			"GPRINT:npstp:LAST:Cur\\:%5.0lf",
+			"GPRINT:npstp:MIN:Min\\:%5.0lf",
+			"GPRINT:npstp:MAX:Max\\:%5.0lf\\l",
 
-			"LINE2:npswp#0000EE:Paging",
-			"GPRINT:npswp:LAST: Current\\:%5.0lf\\n",
+			"LINE1:nprun#FF0000:Running          ",
+			"GPRINT:nprun:LAST:Cur\\:%5.0lf",
+			"GPRINT:nprun:MIN:Min\\:%5.0lf",
+			"GPRINT:nprun:MAX:Max\\:%5.0lf\\l",
 
-			"LINE2:nprun#EE0000:Running",
-			"GPRINT:nprun:LAST: Current\\:%5.0lf\\n",
-
-			"COMMENT: \\n",
-
-			"LINE2:nproc#888888:Total Processes",
-			"GPRINT:nproc:LAST: Current\\:%5.0lf\\n",
+			"LINE2:nproc#FFFFFF:Total Processes  ",
+			"GPRINT:nproc:LAST:Cur\\:%5.0lf",
+			"GPRINT:nproc:MIN:Min\\:%5.0lf",
+			"GPRINT:nproc:MAX:Max\\:%5.0lf\\l",
 		},
 	}
 
