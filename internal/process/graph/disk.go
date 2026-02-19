@@ -82,7 +82,7 @@ func createDiskIO(ctx context.Context, p *graph.GraphPeriod) {
 		draw = append(draw,
 			fmt.Sprintf("LINE2:%s#%06X:%s",
 				aliasClean,
-				generateHexColor(i),
+				graph.GenerateHexColor(i),
 				label,
 			),
 		)
@@ -125,6 +125,8 @@ func createDiskIO(ctx context.Context, p *graph.GraphPeriod) {
 	args := graph.BuildGraphArgs(t)
 
 	if err := utils.ExecCommand(ctx, "PROCESS", "rrdtool", args...,); err != nil {
-		logging.Error("PROCESS", "Error creating disk image %s: %v", graphFile,	err,)
+		logging.Error("PROCESS", "Error creating disk graph '%s': %v", graphFile,	err,)
 	}
+
+	logging.Info("PROCESS", "Created disk graph '%s'", graphFile,)
 }

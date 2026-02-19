@@ -68,7 +68,7 @@ func createContextSwitches(ctx context.Context, p *graph.GraphPeriod) {
 		draw = append(draw,
 			fmt.Sprintf("AREA:%s#%06X:%s",
 				vcs,
-				generateHexColor(i),
+				graph.GenerateHexColor(i),
 				label,
 			),
 		)
@@ -77,7 +77,7 @@ func createContextSwitches(ctx context.Context, p *graph.GraphPeriod) {
 		draw = append(draw,
 			fmt.Sprintf("AREA:%s#%06X",
 				nics,
-				generateHexColor(i+20), 
+				graph.GenerateHexColor(i+20), 
 			),
 		)
 
@@ -124,6 +124,8 @@ func createContextSwitches(ctx context.Context, p *graph.GraphPeriod) {
 	args := graph.BuildGraphArgs(t)
 
 	if err := utils.ExecCommand(ctx, "PROCESS", "rrdtool", args...,); err != nil {
-		logging.Error("PROCESS", "Error creating context switch image %s: %v", graphFile, err,)
+		logging.Error("PROCESS", "Error creating context switch graph '%s': %v", graphFile, err,)
 	}
+
+	logging.Info("PROCESS", "Created context switch graph '%s'", graphFile,)
 }

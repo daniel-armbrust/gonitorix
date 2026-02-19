@@ -15,16 +15,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
-package filesystem
 
-type filesystemDevice struct {
-	rrdFile	   string
-	mountPoint string
-	device     string
-	major      uint32
-	minor      uint32
-	index      int 
-	lastIOA    uint64
-	lastTIM    uint64
+package graph
+
+type Device struct {
+	RRDFile    string
+	MountPoint string
+	Index      int
 }

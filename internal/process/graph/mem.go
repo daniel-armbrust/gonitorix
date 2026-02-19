@@ -71,7 +71,7 @@ func createMem(ctx context.Context, p *graph.GraphPeriod) {
 		label := fmt.Sprintf("%-18s", proc.Name)
 
 		draw = append(draw, 
-			fmt.Sprintf("LINE2:%s#%06X:%s", alias, generateHexColor(i), label,),
+			fmt.Sprintf("LINE2:%s#%06X:%s", alias, graph.GenerateHexColor(i), label,),
 		)
 
 		// -------------------------------------------------
@@ -109,6 +109,8 @@ func createMem(ctx context.Context, p *graph.GraphPeriod) {
 	args := graph.BuildGraphArgs(t)
 
 	if err := utils.ExecCommand(ctx, "PROCESS", "rrdtool", args...,); err != nil {
-		logging.Error("PROCESS", "Error creating memory image %s: %v", graphFile, err,)
+		logging.Error("PROCESS", "Error creating memory graph '%s': %v", graphFile, err,)
 	}
+
+	logging.Info("PROCESS", "Created memory graph '%s'", graphFile,)
 }

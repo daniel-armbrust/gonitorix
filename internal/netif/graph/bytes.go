@@ -38,7 +38,7 @@ func createBytes(ctx context.Context, p *graph.GraphPeriod) {
 	for _, iface := range config.NetIfCfg.Interfaces {
 		select {
 			case <-ctx.Done():
-				logging.Info("NETIF", "Byte graph generation cancelled")
+				logging.Info("NETIF", "Bytes graph generation cancelled")
 				return
 			default:
 		}
@@ -106,7 +106,9 @@ func createBytes(ctx context.Context, p *graph.GraphPeriod) {
 		args := graph.BuildGraphArgs(t)
 
 		if err := utils.ExecCommand(ctx, "NETIF",	"rrdtool", args...,); err != nil {
-			logging.Error("NETIF", "Error creating image %s",	graphFile,)
+			logging.Error("NETIF",	"Failed to create network interface bytes graph '%s': %v", graphFile, err,)
+		} else {
+			logging.Info("NETIF", "Created network interface bytes graph '%s'", graphFile,)
 		}
 	}
 }

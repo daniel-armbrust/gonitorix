@@ -72,7 +72,6 @@ func createContextSwitches(ctx context.Context, p *graph.GraphPeriod) {
 
 	// Remove the PNG file if it already exists.
 	if _, err := os.Stat(graphFile); err == nil {
-
 		if err := os.Remove(graphFile); err != nil {
 			logging.Warn("KERNEL", "Failed to remove existing graph %s: %v", graphFile, err,)
 		}
@@ -85,6 +84,8 @@ func createContextSwitches(ctx context.Context, p *graph.GraphPeriod) {
 
 	// Execute rrdtool graph
 	if err := utils.ExecCommand(ctx, "KERNEL", "rrdtool", args...,); err != nil {
-		logging.Error("KERNEL",	"Error creating image %s: %v", graphFile, err,)
+		logging.Error("KERNEL",	"Failed to create context switches and fork graph '%s': %v", graphFile, err,)
 	}
+
+	logging.Info("KERNEL", "Created create context switches and fork graph '%s'", graphFile,)
 }

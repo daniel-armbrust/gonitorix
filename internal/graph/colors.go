@@ -21,7 +21,7 @@ package graph
 import "math"
 
 // generateHexColor generates a distinct color for graph series.
-func generateHexColor(i int) int {
+func GenerateHexColor(i int) int {
 	h := float64((i * 137) % 360)
 
 	s := 0.75

@@ -31,12 +31,6 @@ import (
 	"gonitorix/internal/utils"
 )
 
-type uptimeUnit struct {
-	yTitle string
-	unit   int
-	format string
-}
-
 func uptimeUnitConfig(timeUnit string) uptimeUnit {
 	switch strings.ToLower(timeUnit) {
 
@@ -115,6 +109,8 @@ func createUptime(ctx context.Context, p *graph.GraphPeriod) {
 	args := graph.BuildGraphArgs(t)
 
 	if err := utils.ExecCommand(ctx, "SYSTEM", "rrdtool", args...,); err != nil {
-		logging.Error("SYSTEM",	"Error creating image %s", graphFile,)
+		logging.Error("SYSTEM",	"Failed to create system uptime graph '%s': %v", graphFile, err,)
 	}
+
+	logging.Info("SYSTEM", "Created system uptime graph '%s'", graphFile,)
 }

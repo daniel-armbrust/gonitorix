@@ -89,6 +89,8 @@ func createVfs(ctx context.Context, p *graph.GraphPeriod) {
 
 	// Execute rrdtool graph
 	if err := utils.ExecCommand(ctx, "KERNEL", "rrdtool", args...,); err != nil {
-		logging.Error("KERNEL", "Error creating image %s: %v", graphFile, err,)
+		logging.Error("KERNEL", "Failed to create VFS usage graph '%s': %v", graphFile, err,)
 	}
+
+	logging.Info("KERNEL", "Created VFS usage graph '%s'", graphFile,)
 }

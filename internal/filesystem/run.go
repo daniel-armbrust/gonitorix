@@ -23,7 +23,7 @@ import (
 	"time"
 		
 	"gonitorix/internal/config"
-	// "gonitorix/internal/process/graph"
+	"gonitorix/internal/filesystem/graph"
 )
 
 func Run(ctx context.Context) {
@@ -41,9 +41,9 @@ func Run(ctx context.Context) {
 			case <-ticker.C:
 				measure(ctx)
 				
-				// if config.FilesystemCfg.CreateGraphs {
-				// 	graph.Create(ctx)
-				// }
+				if config.FilesystemCfg.CreateGraphs {
+					graph.Create(ctx, buildGraphData())
+				}
 		}
 	}
 }

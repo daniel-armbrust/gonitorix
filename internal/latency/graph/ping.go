@@ -99,7 +99,9 @@ func createPing(ctx context.Context, p *graph.GraphPeriod) {
 		args := graph.BuildGraphArgs(t)
 
 		if err := utils.ExecCommand(ctx, "LATENCY", "rrdtool", args...,	); err != nil {
-			logging.Error("LATENCY", "Error creating image %s", graphFile,)
+			logging.Error("LATENCY", "Failed to create ping graph '%s'", graphFile,)
 		}
+
+		logging.Info("LATENCY", "Created ping graph '%s'", graphFile,)
 	}
 }

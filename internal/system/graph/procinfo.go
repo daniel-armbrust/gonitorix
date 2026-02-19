@@ -107,6 +107,8 @@ func createProcInfo(ctx context.Context, p *graph.GraphPeriod) {
 	args := graph.BuildGraphArgs(t)
 
 	if err := utils.ExecCommand(ctx, "SYSTEM", "rrdtool", args...,); err != nil {
-		logging.Error("SYSTEM",	"Error creating image %s",	graphFile,)
+		logging.Error("SYSTEM",	"Failed to create system process states graph %s: %v",	graphFile, err,)
 	}
+
+	logging.Info("SYSTEM", "Created system process states graph '%s'", graphFile,)
 }

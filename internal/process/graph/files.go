@@ -58,7 +58,7 @@ func createOpenFD(ctx context.Context, p *graph.GraphPeriod) {
 		draw = append(draw,
 			fmt.Sprintf("LINE2:%s#%06X:%s",
 				alias,
-				generateHexColor(i),
+				graph.GenerateHexColor(i),
 				label,
 			),
 		)
@@ -100,6 +100,8 @@ func createOpenFD(ctx context.Context, p *graph.GraphPeriod) {
 	args := graph.BuildGraphArgs(t)
 
 	if err := utils.ExecCommand(ctx, "PROCESS", "rrdtool", args...,); err != nil {
-		logging.Error("PROCESS", "Error creating open files image %s: %v", graphFile, err,)
+		logging.Error("PROCESS", "Error creating open files graph '%s': %v", graphFile, err,)
 	}
+
+	logging.Info("PROCESS", "Created open files graph '%s'", graphFile,)
 }

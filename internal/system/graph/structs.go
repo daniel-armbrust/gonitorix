@@ -16,15 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
  
-package filesystem
+package graph
 
-type filesystemDevice struct {
-	rrdFile	   string
-	mountPoint string
-	device     string
-	major      uint32
-	minor      uint32
-	index      int 
-	lastIOA    uint64
-	lastTIM    uint64
+type uptimeUnit struct {
+	yTitle string
+	unit   int
+	format string
 }

@@ -36,7 +36,7 @@ func createPackets(ctx context.Context, p *graph.GraphPeriod) {
 	for _, iface := range config.NetIfCfg.Interfaces {
 		select {
 			case <-ctx.Done():
-				logging.Info("NETIF", "Packet graph generation cancelled")
+				logging.Info("NETIF", "Packets graph generation cancelled")
 				return
 			default:
 		}
@@ -89,7 +89,9 @@ func createPackets(ctx context.Context, p *graph.GraphPeriod) {
 		args := graph.BuildGraphArgs(t)
 
 		if err := utils.ExecCommand(ctx, "NETIF", "rrdtool", args...,); err != nil {
-			logging.Error("NETIF", "Error creating image %s",	graphFile,)
+			logging.Error("NETIF", "Failed to create network interface packets graph '%s': %v", graphFile, err,)
+		} else {
+			logging.Info("NETIF", "Created network interface packets graph '%s'", graphFile,)
 		}
 	}
 }

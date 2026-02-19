@@ -29,56 +29,49 @@ import (
 	"gonitorix/internal/block"
 )
 
-func initFilesystemMonitoring(ctx context.Context) error {
-	if logging.DebugEnabled() {
-		logging.Debug("FILESYSTEM", "Initializing filesystem monitoring")
-	}
+func initFilesystemMonitoring(ctx context.Context) {
+	// Reset map in case of reload
+	filesystemDevices = map[string]*filesystemDevice{}
 
 	mounts, err := procfs.ReadMounts(ctx)
 
 	if err != nil {
 		logging.Error("FILESYSTEM",	"Unable to read mounts: %v", err,)
-		return err
+		return
 	}
 
-	filesystemDevices = map[string]*filesystemDevice{}
+	// Index mounts by mountpoint for fast lookup
+	mountMap := make(map[string]procfs.Mount)
+
+	for _, m := range mounts {
+		mountMap[m.MountPoint] = m
+	}
 
 	for i, mountPoint := range config.FilesystemCfg.MountPoints {
 		select {
 			case <-ctx.Done():
-				logging.Warn("FILESYSTEM", "Initialization cancelled by context")
-				return ctx.Err()
+				return
 			default:
 		}
 
-		var device string
+		m, ok := mountMap[mountPoint]
 
-		for _, m := range mounts {
-			if m.MountPoint == mountPoint {
-				device = m.Device
-				break
-			}
-		}
-
-		if device == "" {
-			logging.Warn("FILESYSTEM", "Mountpoint '%s' not found in /proc/self/mounts", mountPoint,)
+		if !ok {
+			logging.Warn("FILESYSTEM", "Mount point '%s' not found", mountPoint,)
 			continue
 		}
 
-		// resolve symlink (ex: /dev/disk/by-uuid)
-		resolved, err := filepath.EvalSymlinks(device)
-		if err == nil {
-			device = resolved
-		}
+		device := m.Device
 
 		major, minor, err := block.GetDeviceMajorMinor(device)
 
 		if err != nil {
-			logging.Warn("FILESYSTEM", "Cannot obtain major/minor for device '%s': %v", device, err,)
+			logging.Warn("FILESYSTEM", "Unable to resolve major/minor for '%s': %v", device, err,)
 			continue
 		}
 
 		rrdIndex := i / maxFilesystemsPerRRD
+		localIndex := i % maxFilesystemsPerRRD
 
 		rrdFile := filepath.Join(
 			config.GlobalCfg.RRDPath,
@@ -94,25 +87,26 @@ func initFilesystemMonitoring(ctx context.Context) error {
 			device:     device,
 			major:      major,
 			minor:      minor,
+			index:      localIndex,
 			lastIOA:    0,
 			lastTIM:    0,
 		}
 
 		if logging.DebugEnabled() {
 			logging.Debug("FILESYSTEM",
-				"Monitoring '%s' - %s (%d:%d) RRD=%s",
+				"Monitoring '%s' - %s (%d:%d) RRD=%s index=%d",
 				mountPoint,
 				device,
 				major,
 				minor,
 				rrdFile,
+				localIndex,
 			)
 		}
 	}
 
-	if logging.DebugEnabled() {
-		logging.Debug("FILESYSTEM",	"Filesystem monitoring initialized (%d mountpoints)", len(filesystemDevices),)
-	}
-
-	return nil
+	logging.Info("FILESYSTEM",
+		"Filesystem monitoring initialized (%d mount points)",
+		len(filesystemDevices),
+	)
 }

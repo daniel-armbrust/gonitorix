@@ -69,7 +69,7 @@ func createCPU(ctx context.Context, p *graph.GraphPeriod) {
 		draw = append(draw,
 			fmt.Sprintf("LINE2:%s#%06X:%s",
 				aliasClean,
-				generateHexColor(i),
+				graph.GenerateHexColor(i),
 				label,
 			),
 		)
@@ -118,6 +118,8 @@ func createCPU(ctx context.Context, p *graph.GraphPeriod) {
 	)
 
 	if err := utils.ExecCommand(ctx, "PROCESS", "rrdtool", args...,); err != nil {
-		logging.Error("PROCESS", "Error creating image %s: %v", graphFile, err,)
+		logging.Error("PROCESS", "Failed to create CPU graph '%s': %v", graphFile, err,)
 	}
+
+	logging.Info("PROCESS", "Created CPU graph '%s'", graphFile,)
 }

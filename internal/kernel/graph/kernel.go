@@ -138,6 +138,8 @@ func createKernelUsage(ctx context.Context, p *graph.GraphPeriod) {
 
 	// Execute rrdtool graph
 	if err := utils.ExecCommand(ctx, "KERNEL", "rrdtool", args...,); err != nil {
-		logging.Error("KERNEL", "Error creating image %s: %v", graphFile, err,)
+		logging.Error("KERNEL", "Failed to create kernel usage graph '%s': %v", graphFile, err,)
 	}
+
+	logging.Info("KERNEL", "Created kernel usage graph '%s'", graphFile,)
 }

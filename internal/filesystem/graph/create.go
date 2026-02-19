@@ -15,16 +15,39 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
-package filesystem
 
-type filesystemDevice struct {
-	rrdFile	   string
-	mountPoint string
-	device     string
-	major      uint32
-	minor      uint32
-	index      int 
-	lastIOA    uint64
-	lastTIM    uint64
+package graph
+
+import (
+	"context"
+
+	"gonitorix/internal/logging"
+	"gonitorix/internal/graph"
+)
+
+func Create(ctx context.Context, devices []Device) {
+	if len(devices) == 0 {
+		return
+	}
+
+	periods := []*graph.GraphPeriod{
+		&graph.Daily,
+		&graph.Weekly,
+		&graph.Monthly,
+		&graph.Yearly,
+	}
+
+	for _, p := range periods {
+		select {
+			case <-ctx.Done():
+				logging.Info("FILESYSTEM", "Graph generation stopped")
+				return
+			default:
+		}
+
+		createFilesystemUsage(ctx, p, devices)
+		createInodeUsage(ctx, p, devices)
+		createIOActivity(ctx, p, devices)
+		createTimeSpentIO(ctx, p, devices)
+	}
 }

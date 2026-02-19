@@ -70,7 +70,7 @@ func createUptime(ctx context.Context, p *graph.GraphPeriod) {
 		draw = append(draw,
 			fmt.Sprintf("LINE2:%s#%06X:%s",
 				aliasDays,
-				generateHexColor(i),
+				graph.GenerateHexColor(i),
 				label,
 			),
 		)
@@ -113,6 +113,8 @@ func createUptime(ctx context.Context, p *graph.GraphPeriod) {
 	args := graph.BuildGraphArgs(t)
 
 	if err := utils.ExecCommand(ctx, "PROCESS", "rrdtool", args...,); err != nil {
-		logging.Error("PROCESS", "Error creating uptime image %s: %v", graphFile, err,)
+		logging.Error("PROCESS", "Error creating uptime graph '%s': %v", graphFile, err,)
 	}
+
+	logging.Info("PROCESS", "Created uptime graph '%s'", graphFile,)
 }

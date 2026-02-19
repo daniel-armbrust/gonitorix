@@ -18,13 +18,20 @@
  
 package filesystem
 
-type filesystemDevice struct {
-	rrdFile	   string
-	mountPoint string
-	device     string
-	major      uint32
-	minor      uint32
-	index      int 
-	lastIOA    uint64
-	lastTIM    uint64
+import (
+	"gonitorix/internal/filesystem/graph"
+)
+
+func buildGraphData() []graph.Device {
+	var devices []graph.Device
+
+	for _, dev := range filesystemDevices {
+		devices = append(devices, graph.Device{
+			RRDFile:    dev.rrdFile,
+			MountPoint: dev.mountPoint,
+			Index:      dev.index,
+		})
+	}
+
+	return devices
 }
