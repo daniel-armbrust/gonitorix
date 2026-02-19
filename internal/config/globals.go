@@ -55,6 +55,64 @@ type systemWrapper struct {
 var SystemCfg SystemConfig
 
 // --------------------
+// KERNEL
+// --------------------
+
+type KernelConfig struct {
+	Enable			 bool `yaml:"enable"`
+	Step             int  `yaml:"step"`
+	MaxHistoricYears int  `yaml:"max_historic_years"`
+	CreateGraphs     bool `yaml:"create_graphs"`
+}
+
+type kernelWrapper struct {
+	Kernel KernelConfig `yaml:"kernel"`
+}
+
+var KernelCfg KernelConfig
+
+// --------------------
+// FILE SYSTEM (FS)
+// --------------------
+
+type FilesystemConfig struct {
+	Enable           bool     `yaml:"enable"`
+	Step             int      `yaml:"step"`
+	MaxHistoricYears int      `yaml:"max_historic_years"`
+	CreateGraphs     bool     `yaml:"create_graphs"`
+	MountPoints		 []string `yaml:"mountpoints"`
+}
+
+type filesystemWrapper struct {
+	Process FilesystemConfig `yaml:"filesystem"`
+}
+
+var FilesystemCfg FilesystemConfig
+
+// --------------------
+// PROCESSES
+// --------------------
+
+type ProcessConfig struct {
+	Enable           bool           `yaml:"enable"`
+	Step             int            `yaml:"step"`
+	MaxHistoricYears int            `yaml:"max_historic_years"`
+	CreateGraphs     bool           `yaml:"create_graphs"`
+	Processes        []ProcessEntry `yaml:"processes"`
+}
+
+type ProcessEntry struct {
+	Name        string `yaml:"name"`
+	Description string `yaml:"description"`
+}
+
+type processWrapper struct {
+	Process ProcessConfig `yaml:"process"`
+}
+
+var ProcessCfg ProcessConfig
+
+// --------------------
 // NETWORK / NETIF
 // --------------------
 
@@ -78,23 +136,6 @@ type netIfWrapper struct {
 }
 
 var NetIfCfg NetIfConfig
-
-// --------------------
-// KERNEL
-// --------------------
-
-type KernelConfig struct {
-	Enable			 bool `yaml:"enable"`
-	Step             int  `yaml:"step"`
-	MaxHistoricYears int  `yaml:"max_historic_years"`
-	CreateGraphs     bool `yaml:"create_graphs"`
-}
-
-type kernelWrapper struct {
-	Kernel KernelConfig `yaml:"kernel"`
-}
-
-var KernelCfg KernelConfig
 
 // --------------------
 // NETWORK / LATENCY
@@ -126,25 +167,5 @@ type latencyWrapper struct {
 
 var LatencyCfg LatencyConfig
 
-// --------------------
-// PROCESSES
-// --------------------
 
-type ProcessConfig struct {
-	Enable           bool           `yaml:"enable"`
-	Step             int            `yaml:"step"`
-	MaxHistoricYears int            `yaml:"max_historic_years"`
-	CreateGraphs     bool           `yaml:"create_graphs"`
-	Processes        []ProcessEntry `yaml:"processes"`
-}
 
-type ProcessEntry struct {
-	Name        string `yaml:"name"`
-	Description string `yaml:"description"`
-}
-
-type processWrapper struct {
-	Process ProcessConfig `yaml:"process"`
-}
-
-var ProcessCfg ProcessConfig

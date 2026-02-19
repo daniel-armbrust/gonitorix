@@ -96,7 +96,7 @@ type ProcessFDAndCtxStat struct {
 }
 
 // -----------------------------------------------------
-// /proc/stat → cpu line only
+// /proc/stat - cpu line only
 // -----------------------------------------------------
 type CPUTimes struct {
 	User    uint64
@@ -108,4 +108,25 @@ type CPUTimes struct {
 	SoftIRQ uint64
 	Steal   uint64
 	Guest   uint64
+}
+
+// -----------------------------------------------------
+// /proc/self/mounts
+// -----------------------------------------------------
+type Mount struct {
+	Device     string
+	MountPoint string
+	FSType     string
+	Options    string
+}
+
+// -----------------------------------------------------
+// /proc/diskstats
+// -----------------------------------------------------
+type DiskStat struct {
+	Major               uint32
+	Minor               uint32
+	Device              string
+	TimeDoingIO         uint64 // field 12 (ms spent doing I/Os)
+	WeightedTimeDoingIO uint64 // field 13 (weighted ms spent doing I/Os)
 }

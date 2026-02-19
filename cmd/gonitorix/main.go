@@ -31,10 +31,11 @@ import (
 	"gonitorix/internal/config"
 	"gonitorix/internal/logging"
 	"gonitorix/internal/system"
-	"gonitorix/internal/netif"
 	"gonitorix/internal/kernel"
-	"gonitorix/internal/latency"
+	"gonitorix/internal/filesystem"
 	"gonitorix/internal/process"
+	"gonitorix/internal/netif"	
+	"gonitorix/internal/latency"	
 )
 
 var GonitorixVersion = "dev"
@@ -57,40 +58,48 @@ func startGonitorix() {
 		logging.Info("SYSTEM", "Starting system monitoring subsystem")
 	}
 
-	if config.NetIfCfg.Enable {
-		logging.Info("NETWORK", "Starting network monitoring subsystem")
-	}
-
 	if config.KernelCfg.Enable {
 		logging.Info("KERNEL", "Starting kernel monitoring subsystem")
 	}
 
-	if config.LatencyCfg.Enable {
-		logging.Info("LATENCY", "Starting latency monitoring subsystem")
+	if config.FilesystemCfg.Enable {
+		logging.Info("FILESYSTEM", "Starting filesystem monitoring subsystem")
 	}
 
 	if config.ProcessCfg.Enable {
 		logging.Info("PROCESS", "Starting process monitoring subsystem")
 	}
 
-	if config.SystemCfg.Enable {
-		go system.Run(ctx)
+	if config.NetIfCfg.Enable {
+		logging.Info("NETWORK", "Starting network monitoring subsystem")
 	}
 
-	if config.NetIfCfg.Enable {
-		go netif.Run(ctx)
+	if config.LatencyCfg.Enable {
+		logging.Info("LATENCY", "Starting latency monitoring subsystem")
+	}
+
+	if config.SystemCfg.Enable {
+		go system.Run(ctx)
 	}
 
 	if config.KernelCfg.Enable {
 		go kernel.Run(ctx)
 	}
 
-	if config.LatencyCfg.Enable {
-		go latency.Run(ctx)
+	if config.FilesystemCfg.Enable {
+		go filesystem.Run(ctx)
 	}
 
 	if config.ProcessCfg.Enable {
 		go process.Run(ctx)
+	}
+
+	if config.NetIfCfg.Enable {
+		go netif.Run(ctx)
+	}
+
+	if config.LatencyCfg.Enable {
+		go latency.Run(ctx)
 	}
 
 	// Block until cancellation
