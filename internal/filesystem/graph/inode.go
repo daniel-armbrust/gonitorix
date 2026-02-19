@@ -21,7 +21,6 @@ package graph
 import (
 	"fmt"
 	"context"
-	"strings"
 	"path/filepath"
 				
 	"gonitorix/internal/config"
@@ -31,99 +30,108 @@ import (
 )
 
 func createInodeUsage(ctx context.Context, p *graph.GraphPeriod, devices []Device) {
-	grouped := make(map[string][]Device)
-
-	for _, d := range devices {
-		grouped[d.RRDFile] = append(grouped[d.RRDFile], d)
+	if len(devices) == 0 {
+		return
 	}
 
-	for rrdFile, devs := range grouped {
-		select {
-			case <-ctx.Done():
-				return
-			default:
-		}
+	var defs  []string
+	var cdefs []string
+	var draw  []string
 
-		graphFile := filepath.Join(
-			config.GlobalCfg.GraphPath,
+	for i, dev := range devices {
+		alias := fmt.Sprintf("ino%d", i)
+		aliasClean := fmt.Sprintf("%s_clean", alias)
+
+		// -----------------------------------------
+		// DEF
+		// -----------------------------------------
+		defs = append(defs,
 			fmt.Sprintf(
-				"%sfs-inode-%s.png",
-				config.GlobalCfg.RRDHostnamePrefix,
-				p.Name,
+				"DEF:%s=%s:fs_ino%d:AVERAGE",
+				alias,
+				dev.RRDFile,
+				dev.Index,
 			),
 		)
 
-		t := graph.GraphTemplate{
-			Graph:         graphFile,
-			Title:         fmt.Sprintf("Inode usage (%s)", p.Name),
-			Start:         p.Start,
-			VerticalLabel: "Percent (%)",
-			XGrid:         p.XGrid,
-		}
-
-		// ----------------------------
-		// DEFs 
-		// ----------------------------
-		for _, d := range devs {
-			t.Defs = append(t.Defs,
-				fmt.Sprintf(
-					"DEF:fs%d=%s:fs_ino%d:AVERAGE",
-					d.Index,
-					rrdFile,
-					d.Index,
-				),
-			)
-		}
-
-		// ----------------------------
-		// CDEF 
-		// ----------------------------
-		if len(devs) > 1 {
-			cdef := "CDEF:allvalues="
-
-			for i := 0; i < len(devs); i++ {
-				cdef += fmt.Sprintf("fs%d,", i)
-			}
-
-			for i := 1; i < len(devs); i++ {
-				cdef += "+,"
-			}
-
-			cdef = strings.TrimSuffix(cdef, ",")
-
-			t.CDefs = append(t.CDefs, cdef)
-		}
-
-		// ----------------------------
-		// DRAW
-		// ----------------------------
-		for _, d := range devs {
-			colorInt := graph.GenerateHexColor(d.Index)
-			color := fmt.Sprintf("#%06X", colorInt)
-
-			t.Draw = append(t.Draw,
-				fmt.Sprintf(
-					"LINE2:fs%d%s:%s",
-					d.Index,
-					color,
-					d.MountPoint,
-				),
-			)
-		}
-
-		args := graph.BuildGraphArgs(t)
-
-		args = append(args,
-			"--upper-limit=100",
-			"--lower-limit=0",
-			"--rigid",
+		// -----------------------------------------
+		// Remove UNKNOWN
+		// -----------------------------------------
+		cdefs = append(cdefs,
+			fmt.Sprintf(
+				"CDEF:%s=%s,UN,0,%s,IF",
+				aliasClean,
+				alias,
+				alias,
+			),
 		)
 
-		if err := utils.ExecCommand(ctx, "FILESYSTEM", "rrdtool", args...); err != nil {
-			logging.Error("FILESYSTEM", "Failed to create inode usage graph '%s': %v", graphFile, err,)
-			continue
-		}
+		// -----------------------------------------
+		// LINE + GPRINT
+		// -----------------------------------------
+		draw = append(draw,
+			fmt.Sprintf(
+				"LINE2:%s#%06X:%s",
+				aliasClean,
+				graph.GenerateHexColor(i),
+				dev.MountPoint,
+			),
+		)
 
-		logging.Info("FILESYSTEM", "Created inode usage graph '%s'", graphFile,)
+		draw = append(draw,
+			fmt.Sprintf(
+				"GPRINT:%s:LAST:  Cur\\: %%6.2lf%%%%",
+				aliasClean,
+			),
+		)
+
+		draw = append(draw,
+			fmt.Sprintf(
+				"GPRINT:%s:MIN:   Min\\: %%6.2lf%%%%",
+				aliasClean,
+			),
+		)
+
+		draw = append(draw,
+			fmt.Sprintf(
+				"GPRINT:%s:MAX:   Max\\: %%6.2lf%%%%\\l",
+				aliasClean,
+			),
+		)
 	}
+
+	graphFile := filepath.Join(
+		config.GlobalCfg.GraphPath,
+		fmt.Sprintf(
+			"%sfs-inode-%s.png",
+			config.GlobalCfg.RRDHostnamePrefix,
+			p.Name,
+		),
+	)
+
+	t := graph.GraphTemplate{
+		Graph:         graphFile,
+		Title:         fmt.Sprintf("Inode usage (%s)", p.Name),
+		Start:         p.Start,
+		VerticalLabel: "Percent (%)",
+		XGrid:         p.XGrid,
+		Defs:          defs,
+		CDefs:         cdefs,
+		Draw:          draw,
+	}
+
+	args := graph.BuildGraphArgs(t)
+
+	args = append(args,
+		"--upper-limit=100",
+		"--lower-limit=0",
+		"--rigid",
+	)
+
+	if err := utils.ExecCommand(ctx, "FILESYSTEM", "rrdtool", args...); err != nil {
+		logging.Error("FILESYSTEM", "Failed to create inode usage graph '%s': %v", graphFile, err,)
+		return
+	}
+
+	logging.Info("FILESYSTEM", "Created inode usage graph '%s'", graphFile,)
 }

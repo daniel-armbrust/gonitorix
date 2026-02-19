@@ -21,7 +21,6 @@ package graph
 import (
 	"fmt"
 	"context"
-	"strings"
 	"path/filepath"
 				
 	"gonitorix/internal/config"
@@ -31,93 +30,102 @@ import (
 )
 
 func createIOActivity(ctx context.Context, p *graph.GraphPeriod, devices []Device) {
-	grouped := make(map[string][]Device)
-
-	for _, d := range devices {
-		grouped[d.RRDFile] = append(grouped[d.RRDFile], d)
+	if len(devices) == 0 {
+		return
 	}
 
-	for rrdFile, devs := range grouped {
-		select {
-			case <-ctx.Done():
-				return
-			default:
-		}
+	var defs  []string
+	var cdefs []string
+	var draw  []string
 
-		graphFile := filepath.Join(
-			config.GlobalCfg.GraphPath,
+	for i, dev := range devices {
+		alias := fmt.Sprintf("io%d", i)
+		aliasClean := fmt.Sprintf("%s_clean", alias)
+
+		// -----------------------------------------
+		// DEF
+		// -----------------------------------------
+		defs = append(defs,
 			fmt.Sprintf(
-				"%sfs-io-%s.png",
-				config.GlobalCfg.RRDHostnamePrefix,
-				p.Name,
+				"DEF:%s=%s:fs_ioa%d:AVERAGE",
+				alias,
+				dev.RRDFile,
+				dev.Index,
 			),
 		)
 
-		t := graph.GraphTemplate{
-			Graph:         graphFile,
-			Title:         fmt.Sprintf("Disk I/O activity (%s)", p.Name),
-			Start:         p.Start,
-			VerticalLabel: "Reads+Writes/s",
-			XGrid:         p.XGrid,
-		}
+		// -----------------------------------------
+		// Remove UNKNOWN
+		// -----------------------------------------
+		cdefs = append(cdefs,
+			fmt.Sprintf(
+				"CDEF:%s=%s,UN,0,%s,IF",
+				aliasClean,
+				alias,
+				alias,
+			),
+		)
 
-		// ----------------------------
-		// DEFs
-		// ----------------------------
-		for _, d := range devs {
-			t.Defs = append(t.Defs,
-				fmt.Sprintf(
-					"DEF:ioa%d=%s:fs_ioa%d:AVERAGE",
-					d.Index,
-					rrdFile,
-					d.Index,
-				),
-			)
-		}
+		// -----------------------------------------
+		// LINE + GPRINT 
+		// -----------------------------------------
+		draw = append(draw,
+			fmt.Sprintf(
+				"LINE2:%s#%06X:%s",
+				aliasClean,
+				graph.GenerateHexColor(i),
+				dev.MountPoint,
+			),
+		)
 
-		// ----------------------------
-		// CDEF 
-		// ----------------------------
-		if len(devs) > 1 {
-			cdef := "CDEF:allvalues="
+		draw = append(draw,
+			fmt.Sprintf(
+				"GPRINT:%s:LAST:  Cur\\: %%6.0lf",
+				aliasClean,
+			),
+		)
 
-			for i := 0; i < len(devs); i++ {
-				cdef += fmt.Sprintf("ioa%d,", i)
-			}
+		draw = append(draw,
+			fmt.Sprintf(
+				"GPRINT:%s:MIN:   Min\\: %%6.0lf",
+				aliasClean,
+			),
+		)
 
-			for i := 1; i < len(devs); i++ {
-				cdef += "+,"
-			}
-
-			cdef = strings.TrimSuffix(cdef, ",")
-
-			t.CDefs = append(t.CDefs, cdef)
-		}
-
-		// ----------------------------
-		// DRAW
-		// ----------------------------
-		for _, d := range devs {
-			colorInt := graph.GenerateHexColor(d.Index)
-			color := fmt.Sprintf("#%06X", colorInt)
-
-			t.Draw = append(t.Draw,
-				fmt.Sprintf(
-					"LINE2:ioa%d%s:%s",
-					d.Index,
-					color,
-					d.MountPoint,
-				),
-			)
-		}
-
-		args := graph.BuildGraphArgs(t)
-
-		if err := utils.ExecCommand(ctx, "FILESYSTEM", "rrdtool", args...); err != nil {
-			logging.Error("FILESYSTEM", "Failed to create I/O activity graph '%s': %v", graphFile, err,)
-			continue
-		}
-
-		logging.Info("FILESYSTEM", "Created I/O activity graph '%s'", graphFile,)
+		draw = append(draw,
+			fmt.Sprintf(
+				"GPRINT:%s:MAX:   Max\\: %%6.0lf\\l",
+				aliasClean,
+			),
+		)
 	}
+
+	graphFile := filepath.Join(
+		config.GlobalCfg.GraphPath,
+		fmt.Sprintf(
+			"%sfs-io-%s.png",
+			config.GlobalCfg.RRDHostnamePrefix,
+			p.Name,
+		),
+	)
+
+	t := graph.GraphTemplate{
+		Graph:         graphFile,
+		Title:         fmt.Sprintf("Disk I/O activity (%s)", p.Name),
+		Start:         p.Start,
+		VerticalLabel: "Reads+Writes/s",
+		XGrid:         p.XGrid,
+		Defs:          defs,
+		CDefs:         cdefs,
+		Draw:          draw,
+	}
+
+	args := graph.BuildGraphArgs(t)
+
+	if err := utils.ExecCommand(ctx, "FILESYSTEM", "rrdtool", args...); err != nil {
+		logging.Error("FILESYSTEM",	"Failed to create I/O activity graph '%s': %v", graphFile, err,)
+		return
+	}
+
+	logging.Info("FILESYSTEM", "Created I/O activity graph '%s'", graphFile,)
 }

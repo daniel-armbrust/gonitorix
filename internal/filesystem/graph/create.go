@@ -46,8 +46,8 @@ func Create(ctx context.Context, devices []Device) {
 		}
 
 		createFilesystemUsage(ctx, p, devices)
-		createInodeUsage(ctx, p, devices)
-		createIOActivity(ctx, p, devices)
 		createTimeSpentIO(ctx, p, devices)
+		createIOActivity(ctx, p, devices)
+		createInodeUsage(ctx, p, devices)		
 	}
 }

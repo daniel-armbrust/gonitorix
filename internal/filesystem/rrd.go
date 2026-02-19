@@ -142,26 +142,34 @@ func createRRD(ctx context.Context) error {
 	return nil
 }
 
-func updateRRD(ctx context.Context, rrdFile string, values []string) error {
+func updateRRD(ctx context.Context, rrdFile string,	values []string) error {
 	if len(values) == 0 {
+		logging.Warn("FILESYSTEM", "No values provided to update RRD '%s'", rrdFile)
 		return nil
+	}
+
+	// Avoid NaN
+	for i, v := range values {
+		v = strings.TrimSpace(v)
+
+		if v == "" || v == "NaN" || v == "nan" {
+			values[i] = "U"
+			continue
+		}
+
+		values[i] = v
 	}
 
 	updateValue := "N:" + strings.Join(values, ":")
 
 	args := []string{
-		"update", rrdFile,
-		updateValue,
+		"update", rrdFile, updateValue,
 	}
 
 	if err := utils.ExecCommand(ctx, "FILESYSTEM", "rrdtool", args...); err != nil {
-		logging.Error("FILESYSTEM",	"Failed to update RRD '%s': %v", rrdFile, err,)
+		logging.Error("FILESYSTEM", "Failed to update RRD '%s': %v", rrdFile, err,)
 		return err
 	}
-
-	if logging.DebugEnabled() {
-		logging.Debug("FILESYSTEM", "Updated RRD '%s' with %s",	rrdFile, updateValue,)
-	}
-
+	
 	return nil
 }
