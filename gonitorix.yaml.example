@@ -5,21 +5,21 @@ global:
   graph_height: 300
   hostname_prefix: false
 
-# System load average and usage.
+# System load average and usage
 system:
   enable: true
   step: 60
   max_historic_years: 1
   create_graphs: true
 
-# Global kernel usage.
+# Global kernel usage
 kernel:
   enable: true
   step: 120
   max_historic_years: 1
   create_graphs: true
 
-# File system usage, I/O and Inode count.
+# File system usage, I/O and Inode count
 filesystem:
   enable: true
   step: 120
@@ -29,7 +29,7 @@ filesystem:
     - /
     - /boot
 
-# Process Monitoring (per-application tracking).
+# Process Monitoring (per-application tracking)
 process:
   enable: true
   step: 60
@@ -42,7 +42,7 @@ process:
     - name: pihole-FTL
       description: Pi-hole DNS and query engine
 
-# Network traffic and usage.
+# Network traffic and usage
 netif:
   enable: true
   step: 60
@@ -85,3 +85,10 @@ latency:
       description: REGISTRO.BR
       address: registro.br
       iface: eth1
+
+# State of IPv4 and IPv6 network connections
+connections:
+  enable: true
+  step: 60
+  max_historic_years: 1
+  create_graphs: true

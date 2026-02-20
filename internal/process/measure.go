@@ -87,7 +87,9 @@ func measure(ctx context.Context) {
 			continue
 		}
 
-		logging.Debug("PROCESS", "Process %s has %d PIDs", procName, len(pids))
+		if logging.DebugEnabled() {
+			logging.Debug("PROCESS", "Process %s has %d PIDs", procName, len(pids))
+		}
 
 		// Total PIDs.
 		proCount := float64(len(pids))

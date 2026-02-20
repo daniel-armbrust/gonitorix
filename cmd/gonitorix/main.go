@@ -36,6 +36,7 @@ import (
 	"gonitorix/internal/process"
 	"gonitorix/internal/netif"	
 	"gonitorix/internal/latency"	
+	"gonitorix/internal/connections"
 )
 
 var GonitorixVersion = "dev"
@@ -78,6 +79,10 @@ func startGonitorix() {
 		logging.Info("LATENCY", "Starting latency monitoring subsystem")
 	}
 
+	if config.ConnectionsCfg.Enable {
+		logging.Info("CONNECTIONS", "Starting connections monitoring subsystem")
+	}
+
 	if config.SystemCfg.Enable {
 		go system.Run(ctx)
 	}
@@ -100,6 +105,10 @@ func startGonitorix() {
 
 	if config.LatencyCfg.Enable {
 		go latency.Run(ctx)
+	}
+
+	if config.ConnectionsCfg.Enable {
+		go connections.Run(ctx)
 	}
 
 	// Block until cancellation

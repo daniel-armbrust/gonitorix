@@ -15,53 +15,26 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
- 
-package config
 
-// --------------------
-// GLOBAL
-// --------------------
+package connections
 
-var GlobalCfg GlobalConfig
+import (
+	"os/exec"
+	"fmt"
 
-// --------------------
-// SYSTEM
-// --------------------
+	"gonitorix/internal/logging"
+)
 
-var SystemCfg SystemConfig
+func initConnectionsMonitoring() (string, error) {
+	if _, err := exec.LookPath("ss"); err == nil {
+		logging.Info("CONNECTIONS", "Using 'ss' for connections collection")
+		return "ss", nil
+	}
 
-// --------------------
-// KERNEL
-// --------------------
+	if _, err := exec.LookPath("netstat"); err == nil {
+		logging.Info("CONNECTIONS", "Using 'netstat' for connections collection")
+		return "netstat", nil
+	}
 
-var KernelCfg KernelConfig
-
-// --------------------
-// FILE SYSTEM (FS)
-// --------------------
-
-var FilesystemCfg FilesystemConfig
-
-// --------------------
-// PROCESSES
-// --------------------
-
-var ProcessCfg ProcessConfig
-
-// --------------------
-// NETWORK / NETIF
-// --------------------
-
-var NetIfCfg NetIfConfig
-
-// --------------------
-// NETWORK / LATENCY
-// --------------------
-
-var LatencyCfg LatencyConfig
-
-// --------------------
-// NETWORK / CONNECTIONS
-// --------------------
-
-var ConnectionsCfg ConnectionsConfig
+	return "", fmt.Errorf("neither 'ss' nor 'netstat' found in PATH")
+}
