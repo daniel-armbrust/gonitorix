@@ -35,12 +35,10 @@ func createFilesystemUsage(ctx context.Context,	p *graph.GraphPeriod, devices []
 	}
 
 	var defs  []string
-	var cdefs []string
 	var draw  []string
 
 	for i, dev := range devices {
 		alias := fmt.Sprintf("fs%d", i)
-		aliasClean := fmt.Sprintf("%s_clean", alias)
 
 		// -----------------------------------------
 		// DEF
@@ -55,47 +53,38 @@ func createFilesystemUsage(ctx context.Context,	p *graph.GraphPeriod, devices []
 		)
 
 		// -----------------------------------------
-		// Remove UNKNOWN
-		// -----------------------------------------
-		cdefs = append(cdefs,
-			fmt.Sprintf(
-				"CDEF:%s=%s,UN,0,%s,IF",
-				aliasClean,
-				alias,
-				alias,
-			),
-		)
-
-		// -----------------------------------------
-		// LINE + GPRINT
+		// LINE
 		// -----------------------------------------
 		draw = append(draw,
 			fmt.Sprintf(
 				"LINE2:%s#%06X:%s",
-				aliasClean,
+				alias,
 				graph.GenerateHexColor(i),
 				dev.MountPoint,
 			),
 		)
 
+		// -----------------------------------------
+		// GPRINT
+		// -----------------------------------------
 		draw = append(draw,
 			fmt.Sprintf(
 				"GPRINT:%s:LAST:  Cur\\: %%6.2lf%%%%",
-				aliasClean,
+				alias,
 			),
 		)
 
 		draw = append(draw,
 			fmt.Sprintf(
 				"GPRINT:%s:MIN:   Min\\: %%6.2lf%%%%",
-				aliasClean,
+				alias,
 			),
 		)
 
 		draw = append(draw,
 			fmt.Sprintf(
 				"GPRINT:%s:MAX:   Max\\: %%6.2lf%%%%\\l",
-				aliasClean,
+				alias,
 			),
 		)
 	}
@@ -116,7 +105,6 @@ func createFilesystemUsage(ctx context.Context,	p *graph.GraphPeriod, devices []
 		VerticalLabel: "Percent (%)",
 		XGrid:         p.XGrid,
 		Defs:          defs,
-		CDefs:         cdefs,
 		Draw:          draw,
 	}
 
@@ -129,9 +117,9 @@ func createFilesystemUsage(ctx context.Context,	p *graph.GraphPeriod, devices []
 	)
 
 	if err := utils.ExecCommand(ctx, "FILESYSTEM", "rrdtool", args...); err != nil {
-		logging.Error("FILESYSTEM", "Failed to create usage graph '%s': %v", graphFile, err,)
+		logging.Error("FILESYSTEM",	"Failed to create filesystem usage graph '%s': %v", graphFile,	err,)
 		return
 	}
 
-	logging.Info("FILESYSTEM", "Created usage graph '%s'", graphFile,)
+	logging.Info("FILESYSTEM", "Created filesystem usage graph '%s'", graphFile,)
 }

@@ -29,7 +29,7 @@ import (
 	"gonitorix/internal/graph"
 )
 
-func createTimeSpentIO(ctx context.Context,	p *graph.GraphPeriod, devices []Device) {
+func createIOTimeSpent(ctx context.Context,	p *graph.GraphPeriod, devices []Device) {
 	if len(devices) == 0 {
 		return
 	}
@@ -40,7 +40,6 @@ func createTimeSpentIO(ctx context.Context,	p *graph.GraphPeriod, devices []Devi
 
 	for i, dev := range devices {
 		alias := fmt.Sprintf("tim%d", i)
-		aliasClean := fmt.Sprintf("%s_clean", alias)
 		aliasMs := fmt.Sprintf("%s_ms", alias)
 
 		// -------------------------------------------------
@@ -56,42 +55,30 @@ func createTimeSpentIO(ctx context.Context,	p *graph.GraphPeriod, devices []Devi
 		)
 
 		// -------------------------------------------------
-		// Remove UNKNOWN
-		// -------------------------------------------------
-		cdefs = append(cdefs,
-			fmt.Sprintf(
-				"CDEF:%s=%s,UN,0,%s,IF",
-				aliasClean,
-				alias,
-				alias,
-			),
-		)
-
-		// -------------------------------------------------
 		// Convert to ms
 		// -------------------------------------------------
 		cdefs = append(cdefs,
 			fmt.Sprintf(
 				"CDEF:%s=%s,1000,/",
 				aliasMs,
-				aliasClean,
+				alias,
 			),
 		)
 
 		// -------------------------------------------------
-		// LINE
+		// LINE 
 		// -------------------------------------------------
 		draw = append(draw,
 			fmt.Sprintf(
 				"LINE2:%s#%06X:%s",
-				aliasClean,
+				aliasMs,
 				graph.GenerateHexColor(i),
 				dev.MountPoint,
 			),
 		)
 
 		// -------------------------------------------------
-		// GPRINT
+		// GPRINT 
 		// -------------------------------------------------
 		draw = append(draw,
 			fmt.Sprintf(
@@ -138,9 +125,9 @@ func createTimeSpentIO(ctx context.Context,	p *graph.GraphPeriod, devices []Devi
 	args := graph.BuildGraphArgs(t)
 
 	if err := utils.ExecCommand(ctx, "FILESYSTEM", "rrdtool", args...); err != nil {
-		logging.Error("FILESYSTEM", "Failed to create time-spent IO graph '%s': %v", graphFile, err,)
+		logging.Error("FILESYSTEM",	"Failed to create time spent I/O graph '%s': %v", graphFile, err,)
 		return
 	}
 
-	logging.Info("FILESYSTEM", "Created time-spent IO graph '%s'", graphFile,)
+	logging.Info("FILESYSTEM", "Created time spent I/O graph '%s'", graphFile,)
 }

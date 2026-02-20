@@ -34,17 +34,12 @@ func createInodeUsage(ctx context.Context, p *graph.GraphPeriod, devices []Devic
 		return
 	}
 
-	var defs  []string
-	var cdefs []string
-	var draw  []string
+	var defs []string
+	var draw []string
 
 	for i, dev := range devices {
 		alias := fmt.Sprintf("ino%d", i)
-		aliasClean := fmt.Sprintf("%s_clean", alias)
 
-		// -----------------------------------------
-		// DEF
-		// -----------------------------------------
 		defs = append(defs,
 			fmt.Sprintf(
 				"DEF:%s=%s:fs_ino%d:AVERAGE",
@@ -54,25 +49,10 @@ func createInodeUsage(ctx context.Context, p *graph.GraphPeriod, devices []Devic
 			),
 		)
 
-		// -----------------------------------------
-		// Remove UNKNOWN
-		// -----------------------------------------
-		cdefs = append(cdefs,
-			fmt.Sprintf(
-				"CDEF:%s=%s,UN,0,%s,IF",
-				aliasClean,
-				alias,
-				alias,
-			),
-		)
-
-		// -----------------------------------------
-		// LINE + GPRINT
-		// -----------------------------------------
 		draw = append(draw,
 			fmt.Sprintf(
 				"LINE2:%s#%06X:%s",
-				aliasClean,
+				alias,
 				graph.GenerateHexColor(i),
 				dev.MountPoint,
 			),
@@ -81,21 +61,21 @@ func createInodeUsage(ctx context.Context, p *graph.GraphPeriod, devices []Devic
 		draw = append(draw,
 			fmt.Sprintf(
 				"GPRINT:%s:LAST:  Cur\\: %%6.2lf%%%%",
-				aliasClean,
+				alias,
 			),
 		)
 
 		draw = append(draw,
 			fmt.Sprintf(
 				"GPRINT:%s:MIN:   Min\\: %%6.2lf%%%%",
-				aliasClean,
+				alias,
 			),
 		)
 
 		draw = append(draw,
 			fmt.Sprintf(
 				"GPRINT:%s:MAX:   Max\\: %%6.2lf%%%%\\l",
-				aliasClean,
+				alias,
 			),
 		)
 	}
@@ -116,7 +96,6 @@ func createInodeUsage(ctx context.Context, p *graph.GraphPeriod, devices []Devic
 		VerticalLabel: "Percent (%)",
 		XGrid:         p.XGrid,
 		Defs:          defs,
-		CDefs:         cdefs,
 		Draw:          draw,
 	}
 
