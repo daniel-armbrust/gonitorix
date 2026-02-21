@@ -37,6 +37,12 @@ var SystemCfg SystemConfig
 var KernelCfg KernelConfig
 
 // --------------------
+// INTERRUPTS
+// --------------------
+
+var InterruptsCfg InterruptsConfig
+
+// --------------------
 // FILE SYSTEM (FS)
 // --------------------
 

@@ -19,6 +19,13 @@ kernel:
   max_historic_years: 1
   create_graphs: true
 
+# Devices interrupt activity
+interrupts:
+  enable: true
+  step: 60
+  max_historic_years: 1
+  create_graphs: true
+
 # File system usage, I/O and Inode count
 filesystem:
   enable: true

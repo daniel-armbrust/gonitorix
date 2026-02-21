@@ -32,6 +32,7 @@ import (
 	"gonitorix/internal/logging"
 	"gonitorix/internal/system"
 	"gonitorix/internal/kernel"
+	"gonitorix/internal/interrupts"
 	"gonitorix/internal/filesystem"
 	"gonitorix/internal/process"
 	"gonitorix/internal/netif"	
@@ -63,6 +64,10 @@ func startGonitorix() {
 		logging.Info("KERNEL", "Starting kernel monitoring subsystem")
 	}
 
+	if config.InterruptsCfg.Enable {
+		logging.Info("INTERRUPTS", "Starting interrupts monitoring subsystem")
+	}
+
 	if config.FilesystemCfg.Enable {
 		logging.Info("FILESYSTEM", "Starting filesystem monitoring subsystem")
 	}
@@ -89,6 +94,10 @@ func startGonitorix() {
 
 	if config.KernelCfg.Enable {
 		go kernel.Run(ctx)
+	}
+
+	if config.InterruptsCfg.Enable {
+		go interrupts.Run(ctx)
 	}
 
 	if config.FilesystemCfg.Enable {

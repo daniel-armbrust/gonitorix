@@ -38,6 +38,7 @@ func Load(cfgFile string) {
 		Global      GlobalConfig      `yaml:"global"`
 		System      SystemConfig      `yaml:"system"`
 		Kernel      KernelConfig      `yaml:"kernel"`
+		Interrupts  InterruptsConfig  `yaml:"interrupts"`
 		Filesystem  FilesystemConfig  `yaml:"filesystem"`
 		Process     ProcessConfig     `yaml:"process"`	
 		NetIf       NetIfConfig       `yaml:"netif"`		
@@ -54,6 +55,7 @@ func Load(cfgFile string) {
 	GlobalCfg      = wrapper.Global
 	SystemCfg      = wrapper.System
 	KernelCfg      = wrapper.Kernel
+	InterruptsCfg  = wrapper.Interrupts
 	FilesystemCfg  = wrapper.Filesystem
 	ProcessCfg     = wrapper.Process
 	NetIfCfg       = wrapper.NetIf	

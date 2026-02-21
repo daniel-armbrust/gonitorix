@@ -66,6 +66,21 @@ type kernelWrapper struct {
 }
 
 // --------------------
+// INTERRUPTS
+// --------------------
+
+type InterruptsConfig struct {
+	Enable			 bool `yaml:"enable"`
+	Step             int  `yaml:"step"`
+	MaxHistoricYears int  `yaml:"max_historic_years"`
+	CreateGraphs     bool `yaml:"create_graphs"`
+}
+
+type interruptsWrapper struct {
+	Interrupts InterruptsConfig `yaml:"interrupts"`
+}
+
+// --------------------
 // FILE SYSTEM (FS)
 // --------------------
 

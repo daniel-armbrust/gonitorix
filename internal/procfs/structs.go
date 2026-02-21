@@ -130,3 +130,11 @@ type DiskStat struct {
 	TimeDoingIO         uint64 // field 12 (ms spent doing I/Os)
 	WeightedTimeDoingIO uint64 // field 13 (weighted ms spent doing I/Os)
 }
+
+// -----------------------------------------------------
+// /proc/stat (intr)
+// -----------------------------------------------------
+type InterruptStat struct {
+	Total uint64   // total interrupts since boot
+	IRQs  []uint64 // per-IRQ counters
+}
